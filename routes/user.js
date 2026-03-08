@@ -13,9 +13,9 @@ const isAuth = require("../middleware/passport");
 
 //register
 router.post("/register", registerRules(), validation, async (req, res) => {
-  const { name, lastname, email, password } = req.body;
+  const { name, lastname, email, password ,role} = req.body;
   try {
-    const newUser = new User({ name, lastname, email, password });
+    const newUser = new User({ name, lastname, email, password, role});
     // check if the email exist
     const searchedUser = await User.findOne({ email });
 
@@ -83,5 +83,42 @@ router.post("/login", loginRules(), validation, async (req, res) => {
 
 router.get("/current", isAuth(), (req, res) => {
   res.status(200).send({ user: req.user });
+});
+// GET : Récupérer tous les utilisateurs
+router.get('/all', async (req, res) => {
+  try {
+    // Le .select('-password') est très important : il empêche d'envoyer les mots de passe !
+    const users = await User.find().select('-password'); 
+    res.status(200).send(users);
+  } catch (error) {
+    res.status(500).send({ message: "Erreur lors de la récupération des utilisateurs", error });
+  }
+});
+// PUT : Modifier le profil d'un utilisateur (par son ID)
+router.put("/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // 🚨 Petite sécurité : Si l'utilisateur essaie de modifier son mot de passe ici, 
+    // il faudrait le crypter d'abord. Mais pour l'instant, on bloque la modification du mot de passe via cette route.
+    if (req.body.password) {
+      delete req.body.password; 
+    }
+
+    // On cherche l'utilisateur et on le met à jour
+    const updatedUser = await User.findByIdAndUpdate(
+      userId, 
+      { $set: req.body }, // On met à jour avec les infos reçues du Front
+      { new: true }       // On demande à MongoDB de nous renvoyer le profil mis à jour
+    ).select("-password"); // 🛡️ Très important : on cache le mot de passe dans la réponse pour la sécurité !
+
+    if (!updatedUser) {
+      return res.status(404).send({ msg: "Utilisateur introuvable" });
+    }
+
+    res.status(200).send({ msg: "Profil mis à jour avec succès !", user: updatedUser });
+  } catch (error) {
+    res.status(500).send({ msg: "Erreur lors de la modification du profil", error });
+  }
 });
 module.exports = router;

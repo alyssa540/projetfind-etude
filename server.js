@@ -13,8 +13,12 @@ connectDB();
 // routes
 app.use(express.json());
 app.use(cors());
-app.use("/user",require("./routes/user"))
-
+app.use("/user",require("./routes/user"));
+app.use('/api/auth', require('./routes/user'));// Tes routes actuelles
+app.use("/api/products", require("./routes/product")); // Nouvelles routes catalogue
+app.use("/api/orders", require("./routes/order")); // Nouvelles routes commandes
+app.use("/api/articles", require("./routes/article"));
+app.use("/api/comments", require("./routes/comment"));
 //server
 const PORT=process.env.PORT;
 app.listen(PORT,(err)=> err ?
