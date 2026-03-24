@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  lastname: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { 
@@ -9,11 +10,10 @@ const userSchema = new mongoose.Schema({
     enum: ['client', 'styliste', 'admin'], 
     required: true 
   },
-  mensurations: {
-    taille: String,
-    poitrine: Number,
-    hanches: Number
-  },
+  taille: { type: String },
+  adress: { type: String},
+  phone: { type: String },
+
   estBloque: { type: Boolean, default: false } 
 }, { timestamps: true });
 

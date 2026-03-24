@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import "./App.css"; // On peut créer ce fichier pour des styles globaux
+import { useDispatch } from "react-redux";
+// Make sure this path points to where your userSlice is located!
+import { userCurrent } from "./JS/userSlice/userSlice"; 
+import "./App.css"; 
 
 // Importation des composants
 import Navbar from "./components/Navbarr";
@@ -14,9 +17,19 @@ import Panier from "./components/Panier";
 import StylistOrders from "./components/StylistOrder";
 import MesCommandes from "./components/MesCommandes";
 
-
-
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    // Check if a token exists in localStorage when the app loads
+    const token = localStorage.getItem("token");
+    
+    // If a token exists, fetch the user data to rehydrate the Redux store
+    if (token) {
+      dispatch(userCurrent());
+    }
+  }, [dispatch]);
+
   return (
     <div className="App" >
       {/* La Navbar reste visible sur toutes les pages */}
@@ -36,9 +49,6 @@ function App() {
           <Route path="/stylist-orders" element={<StylistOrders />} />
           <Route path="/mes-ventes" element={<StylistOrders />} />
           <Route path="/mes-commandes" element={<MesCommandes />} />
-
-          
-        
         </Routes>
       </div>
     </div>

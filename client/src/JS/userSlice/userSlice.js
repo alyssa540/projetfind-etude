@@ -15,6 +15,7 @@ export const userRegister = createAsyncThunk("user/register", async (user) => {
 export const userlogin = createAsyncThunk("user/logi", async (user) => {
   try {
     let response = await axios.post("http://localhost:5000/user/login", user);
+    console.log(response);
     return await response;
   } catch (error) {
     console.log(error);

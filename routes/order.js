@@ -13,13 +13,14 @@ router.post("/add", isAuth(), async (req, res) => {
       return res.status(401).send({ msg: "Seuls les clients peuvent passer commande." });
     }
 
-    const { produitId, tailleChoisie } = req.body;
+    const { produitId, tailleChoisie, quantite } = req.body;
 
     const newOrder = new Order({
       clientId: req.user._id,
       produitId,
       tailleChoisie,
-    
+      quantite,
+  
     });
 
     const savedOrder = await newOrder.save();

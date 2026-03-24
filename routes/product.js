@@ -70,7 +70,7 @@ router.delete("/:id", isAuth(), async (req, res) => {
   }
 });
 // PUT : Modifier un produit (par son ID)
-router.put("/:id", async (req, res) => {
+router.put("/:id",isAuth(), async (req, res) => {
   try {
     // On récupère l'ID du produit depuis l'URL (req.params.id)
     const productId = req.params.id;

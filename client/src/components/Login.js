@@ -14,7 +14,7 @@ function Login() {
     <div>
       <div className="wrapper">
         <form onSubmit={(e) => e.preventDefault()} className="form-signin">
-          <h2 className="form-signin-heading">Please login</h2>
+          <h2 className="form-signin-heading">conneter vous</h2>
           <input
             type="text"
             class="form-control"
@@ -34,7 +34,7 @@ function Login() {
             onChange={(e) => setlogin({ ...login, password: e.target.value })}
           />
 
-          <label class="checkbox">
+        {/* <label class="checkbox">
             <input
               type="checkbox"
               value="remember-me"
@@ -42,7 +42,7 @@ function Login() {
               name="rememberMe"
             />{" "}
             Remember me
-          </label>
+          </label>*/}
           <button
             className="btn btn-lg btn-primary btn-block"
             onClick={() => {
@@ -52,10 +52,10 @@ function Login() {
               }, 1000);
             }}
           >
-            login
+            se connecter
           </button>
           <h5 style={{marginTop:"30px"}}>
-            u already have account <Link to="/register">Register now</Link>{" "}
+            tu n'as pas de compte <Link to="/register">insicrire maintenant</Link>{" "}
           </h5>
         </form>
       </div>

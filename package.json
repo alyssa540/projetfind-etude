@@ -25,8 +25,11 @@
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.27",
     "concurrently": "^7.6.0",
     "dotenv": "^16.0.3",
-    "nodemon": "^2.0.20"
+    "nodemon": "^2.0.20",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19"
   }
 }

@@ -9,7 +9,7 @@ import Card from 'react-bootstrap/Card';
 function Home() {
   return (
     <div>
-      {/* --- 1. SECTION CARROUSEL (INTRO) --- */}
+    
       <Carousel fade indicators={false} className="home-carousel">
         <Carousel.Item className="carousel-banner">
           <img
@@ -33,7 +33,7 @@ function Home() {
           <Carousel.Caption className="banner-caption">
             <h2>Exprimez votre style</h2>
             <p>Des pièces uniques qui vous ressemblent.</p>
-            <Link to="/catalogue" className="btn-fashion-dark">Shopper le look</Link>
+            <Link to="/register" className="btn-fashion-dark">Shopper le look</Link>
           </Carousel.Caption>
         </Carousel.Item>
       </Carousel>
