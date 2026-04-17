@@ -10,7 +10,7 @@ function MesCommandes() {
   // État pour gérer quels groupes (commandes) sont ouverts
   const [expandedGroups, setExpandedGroups] = useState({});
   
-  // --- NOUVEAU : ÉTAT DU MODAL DE DÉTAILS ---
+  // --- ÉTAT DU MODAL DE DÉTAILS ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -32,25 +32,33 @@ function MesCommandes() {
         
         const rawOrders = res.data.orders || [];
 
-        // --- LOGIQUE DE REGROUPEMENT ---
-        // On regroupe les articles achetés en même temps (à la minute près)
+        // --- NOUVELLE LOGIQUE DE REGROUPEMENT ---
+        // On regroupe par date/heure ET par styliste !
         const groups = {};
         
         rawOrders.forEach(order => {
-          // On crée une clé unique basée sur la date et l'heure (sans les secondes)
           const dateObj = new Date(order.createdAt);
           const dateStr = dateObj.toLocaleDateString("fr-FR", { day: '2-digit', month: 'long', year: 'numeric' });
           const timeStr = `${dateObj.getHours()}h${String(dateObj.getMinutes()).padStart(2, '0')}`;
-          const groupKey = `${dateStr} à ${timeStr}`;
+          
+          // Récupération des infos du styliste
+          const stylisteInfo = order.stylisteId || order.produitId?.stylisteId || {};
+          const stylisteId = stylisteInfo._id || stylisteInfo || "inconnu";
+          const stylisteName = stylisteInfo.name 
+            ? `${stylisteInfo.name} ${stylisteInfo.lastname || ''}`.trim() 
+            : null;
+
+          // La clé contient maintenant l'ID du styliste pour bien les séparer
+          const groupKey = `${dateStr}_${timeStr}_${stylisteId}`;
 
           if (!groups[groupKey]) {
             groups[groupKey] = {
               id: groupKey,
-              dateObj: dateObj, // Pour le tri
-              displayDate: groupKey,
+              dateObj: dateObj, 
+              displayDate: `${dateStr} à ${timeStr}`,
+              stylisteName: stylisteName, 
               items: [],
               totalPrice: 0,
-              // On suppose que les articles achetés ensemble ont le même statut initial
               statutGlobal: order.statut 
             };
           }
@@ -80,178 +88,245 @@ function MesCommandes() {
   const toggleGroup = (groupId) => {
     setExpandedGroups(prev => ({
       ...prev,
-      [groupId]: !prev[groupId] // Inverse l'état actuel (ouvert/fermé)
+      [groupId]: !prev[groupId] 
     }));
   };
 
+  // --- FONCTION POUR ANNULER UNE COMMANDE ---
+  const handleCancelOrder = async (items) => {
+    if (window.confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) {
+      try {
+        const token = localStorage.getItem("token");
+        // On boucle sur tous les articles de ce groupe pour les annuler dans la base de données
+        await Promise.all(items.map(item => 
+          axios.put(`http://localhost:5000/api/orders/${item._id}/cancel`, {}, {
+            headers: { Authorization: token }
+          })
+        ));
+        
+        alert("Commande annulée avec succès !");
+        // On recharge la page pour mettre à jour l'affichage
+        window.location.reload(); 
+        
+      } catch (error) {
+        console.error(error);
+        alert(error.response?.data?.msg || "Erreur lors de l'annulation de la commande.");
+      }
+    }
+  };
+
   if (user?.role !== "client") {
-    return <h2 style={{ textAlign: "center", marginTop: "50px" }}>Accès réservé aux clients.</h2>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fdfaf6] text-[#3b332b]">
+        <h2 className="text-2xl font-bold mb-2">Accès réservé aux clients.</h2>
+      </div>
+    );
   }
 
-  if (loading) return <h2 style={{ textAlign: "center", marginTop: "50px" }}>Chargement de votre historique...</h2>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fdfaf6] text-[#3b332b]">
+        <h2 className="text-xl font-semibold animate-pulse">Chargement de votre historique...</h2>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto", position: "relative" }}>
-      <h2 style={{ textAlign: "center", marginBottom: "10px" }}>Mes Commandes</h2>
-      <p style={{ textAlign: "center", color: "#666", marginBottom: "30px" }}>
-        Retrouvez ici l'historique de vos achats. Cliquez sur une commande pour en voir les détails.
-      </p>
+    <div className="min-h-screen bg-[#fdfaf6] pt-28 pb-12 px-5 font-sans text-[#3b332b] relative">
+      <div className="max-w-3xl mx-auto">
+        <h2 className="text-center text-3xl font-semibold mb-2 text-[#3b332b]">Mes Commandes</h2>
+        <p className="text-center text-[#8c7e71] mb-10">
+          Retrouvez ici l'historique de vos achats. Cliquez sur une commande pour en voir les détails.
+        </p>
 
-      {groupedOrders.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px", backgroundColor: "#f9f9f9", borderRadius: "8px" }}>
-          <h4 style={{ marginBottom: "20px" }}>Vous n'avez pas encore passé de commande.</h4>
-          <Link to="/catalogue" className="btn-premium" style={{ textDecoration: "none" }}>
-            Découvrir le catalogue
-          </Link>
-        </div>
-      ) : (
-        <div className="orders-list" style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-          {groupedOrders.map((group) => {
-            const isExpanded = expandedGroups[group.id];
-            
-            // Couleur du statut global
-            let statusColor = "#f39c12"; // En attente
-            if (group.statutGlobal === "confirmee") statusColor = "#2ecc71";
-            if (group.statutGlobal === "declinee") statusColor = "#e74c3c";
-
-            return (
-              <div key={group.id} style={{ 
-                border: "1px solid #ddd", 
-                borderRadius: "8px",
-                backgroundColor: "#fff",
-                overflow: "hidden" // Empêche le contenu de déborder des coins arrondis
-              }}>
-                
-                {/* --- EN-TÊTE DE LA COMMANDE (Cliquable) --- */}
-                <div 
-                  onClick={() => toggleGroup(group.id)}
-                  style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "center",
-                    padding: "15px 20px", 
-                    backgroundColor: "#fcfcfc",
-                    cursor: "pointer",
-                    borderBottom: isExpanded ? "1px solid #ddd" : "none"
-                  }}
-                >
-                  <div>
-                    <h4 style={{ margin: "0 0 5px 0", fontSize: "1.1em" }}>Commande du {group.displayDate}</h4>
-                    <span style={{ fontSize: "0.9em", color: "#666" }}>
-                      {group.items.length} article(s) • Total : <strong>{group.totalPrice} TND</strong>
-                    </span>
-                  </div>
-                  
-                  <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                    <span style={{ 
-                      padding: "5px 12px", 
-                      borderRadius: "20px", 
-                      backgroundColor: `${statusColor}20`, 
-                      color: statusColor,
-                      fontWeight: "bold",
-                      fontSize: "0.85em"
-                    }}>
-                      {group.statutGlobal === "confirmee" ? "Confirmée ✓" : 
-                       group.statutGlobal === "declinee" ? "Refusée ✗" : "En attente ⏳"}
-                    </span>
-                    <span style={{ fontSize: "1.2em", color: "#999", width: "20px", textAlign: "center" }}>
-                      {isExpanded ? "▲" : "▼"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* --- DÉTAIL DES ARTICLES (Visible uniquement si isExpanded est true) --- */}
-                {isExpanded && (
-                  <div style={{ padding: "15px 20px", backgroundColor: "#fff" }}>
-                    {group.items.map((item) => (
-                      <div key={item._id} style={{ 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center",
-                        padding: "10px 0",
-                        borderBottom: "1px solid #eee"
-                      }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                          <img 
-                            src={item.produitId?.image || "https://via.placeholder.com/60"} 
-                            alt={item.produitId?.titre || "Produit"} 
-                            style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "6px" }}
-                          />
-                          <div>
-                            <p style={{ margin: "0 0 4px 0", fontWeight: "bold" }}>
-                              {item.produitId?.titre || "Produit supprimé"}
-                            </p>
-                            <p style={{ margin: "0", fontSize: "0.9em", color: "#777" }}>
-                              Taille : {item.tailleChoisie} | Qté : {item.quantite || 1}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {/* --- PRIX ET BOUTON VOIR (Modifié ici) --- */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
-                          <div style={{ fontWeight: "bold" }}>
-                            {(item.produitId?.prix || 0) * (item.quantite || 1)} TND
-                          </div>
-                          {/* On n'affiche le bouton que si le produit existe encore dans la base */}
-                          {item.produitId && (
-                            <button 
-                              onClick={(e) => { 
-                                e.stopPropagation(); // Évite de fermer/ouvrir l'accordéon si on clique à côté
-                                openViewModal(item); 
-                              }}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2em' }}
-                              title="Voir les détails du produit"
-                            >
-                              👁️
-                            </button>
-                          )}
-                        </div>
-
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* --- NOUVEAU : MODAL DE DÉTAILS DU PRODUIT (Adapté pour les commandes) --- */}
-      {isModalOpen && selectedProduct && selectedProduct.produitId && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '10px', maxWidth: '500px', width: '90%', position: 'relative' }}>
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '1.5em', cursor: 'pointer', color: '#333' }}
+        {groupedOrders.length === 0 ? (
+          <div className="text-center py-16 bg-white border border-[#ece5dd] border-dashed rounded-xl shadow-sm flex flex-col items-center">
+            <h4 className="text-lg font-semibold mb-6 text-[#4a4036]">Vous n'avez pas encore passé de commande.</h4>
+            <Link 
+              to="/catalogue" 
+              className="px-6 py-3 bg-[#3b332b] text-white text-sm font-semibold rounded-md hover:bg-[#2a241e] transition-colors shadow-sm"
             >
-              ✕
-            </button>
-            
-            <img 
-              src={selectedProduct.produitId.image || "https://via.placeholder.com/300"} 
-              alt={selectedProduct.produitId.titre} 
-              style={{ width: '100%', height: '250px', objectFit: 'cover', borderRadius: '8px', marginBottom: '15px' }} 
-            />
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '1.5em' }}>{selectedProduct.produitId.titre}</h3>
-            <p style={{ fontWeight: 'bold', color: '#8c735f', fontSize: '1.2em' }}>{selectedProduct.produitId.prix} TND</p>
-            
-            {/* Description du produit (si elle existe via la jointure populate dans le backend) */}
-            {selectedProduct.produitId.description && (
-              <p style={{ marginTop: '15px', color: '#555', lineHeight: '1.5' }}>{selectedProduct.produitId.description}</p>
-            )}
-            
-            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '5px', border: '1px solid #eee' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>Détails de l'achat</h4>
-              <p style={{ margin: '0 0 5px 0' }}><strong>Taille commandée:</strong> {selectedProduct.tailleChoisie}</p>
-              <p style={{ margin: '0 0 5px 0' }}><strong>Quantité:</strong> {selectedProduct.quantite || 1}</p>
-              <p style={{ margin: '0 0 5px 0' }}><strong>Sous-total de l'article:</strong> {(selectedProduct.produitId.prix || 0) * (selectedProduct.quantite || 1)} TND</p>
+              Découvrir le catalogue
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {groupedOrders.map((group) => {
+              const isExpanded = expandedGroups[group.id];
+              
+              // Détermination des styles de statut
+              let statusClasses = "text-amber-700 bg-amber-100"; 
+              let statusText = "En attente";
+
+              if (group.statutGlobal === "confirmee" || group.statutGlobal === "En cours de livraison") {
+                statusClasses = "text-blue-700 bg-blue-100";
+                statusText = "En préparation";
+              }
+              if (group.statutGlobal === "expediee" || group.statutGlobal === "Validée") {
+                statusClasses = "text-emerald-700 bg-emerald-100";
+                statusText = "Expédiée";
+              }
+              if (group.statutGlobal === "declinee" || group.statutGlobal === "Refusée") {
+                statusClasses = "text-red-700 bg-red-100";
+                statusText = "Refusée ✗";
+              }
+              if (group.statutGlobal === "Annulée" || group.statutGlobal === "annulee") {
+                statusClasses = "text-gray-700 bg-gray-100";
+                statusText = "Annulée";
+              }
+
+              return (
+                <div key={group.id} className="border border-[#ece5dd] rounded-xl bg-white shadow-sm overflow-hidden transition-all">
+                  
+                  {/* --- EN-TÊTE DE LA COMMANDE (Cliquable) --- */}
+                  <div 
+                    onClick={() => toggleGroup(group.id)}
+                    className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 bg-[#fcfcfc] hover:bg-[#fdfaf6] cursor-pointer transition-colors ${isExpanded ? 'border-b border-[#ece5dd]' : ''}`}
+                  >
+                    <div className="mb-3 sm:mb-0">
+                      <h4 className="text-lg font-semibold text-[#3b332b] mb-1">
+                        Commande du {group.displayDate}
+                      </h4>
+                      {group.stylisteName && (
+                        <div className="text-sm font-semibold text-[#cba88c] mb-1">
+                          Chez : {group.stylisteName}
+                        </div>
+                      )}
+                      <span className="text-sm text-[#8c7e71]">
+                        {group.items.length} article(s) • Total : <strong className="text-[#3b332b]">{group.totalPrice} TND</strong>
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${statusClasses}`}>
+                        {statusText}
+                      </span>
+                      <span className="text-[#8c7e71] text-lg w-5 text-center transition-transform">
+                        {isExpanded ? "▲" : "▼"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* --- DÉTAIL DES ARTICLES ET BOUTON ANNULER --- */}
+                  {isExpanded && (
+                    <div className="p-5 bg-white">
+                      {group.items.map((item) => (
+                        <div key={item._id} className="flex justify-between items-center py-4 border-b border-[#ece5dd] last:border-0">
+                          <div className="flex items-center gap-4">
+                            {item.produitId?.image ? (
+                              <img 
+                                src={item.produitId.image} 
+                                alt={item.produitId.titre || "Produit"} 
+                                className="w-16 h-16 object-cover rounded-md border border-[#ece5dd]"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 bg-[#f4ece2] rounded-md border border-[#ece5dd] flex items-center justify-center text-xs text-[#8c7e71]">Img</div>
+                            )}
+                            
+                            <div>
+                              <p className="font-semibold text-[#3b332b] mb-1">
+                                {item.produitId?.titre || "Produit supprimé"}
+                              </p>
+                              <p className="text-sm text-[#8c7e71]">
+                                Taille : {item.tailleChoisie} <span className="mx-1">|</span> Qté : {item.quantite || 1}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* --- PRIX ET BOUTON VOIR --- */}
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="font-bold text-[#3b332b]">
+                              {(item.produitId?.prix || 0) * (item.quantite || 1)} TND
+                            </div>
+                            {item.produitId && (
+                              <button 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  openViewModal(item); 
+                                }}
+                                className="text-[#8c7e71] hover:text-[#cba88c] transition-colors text-xl p-1"
+                                title="Voir les détails du produit"
+                              >
+                                👁️
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Condition pour le bouton annuler */}
+                      {group.statutGlobal && group.statutGlobal.toLowerCase().includes("attente") && (
+                        <div className="flex justify-end mt-4 pt-4 border-t border-dashed border-[#ece5dd]">
+                          <button 
+                            onClick={() => handleCancelOrder(group.items)}
+                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-md transition-colors shadow-sm"
+                          >
+                            Annuler cette commande
+                          </button>
+                        </div>
+                      )}
+
+                    </div>
+                  )}
+                  
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* --- MODAL DE DÉTAILS DU PRODUIT --- */}
+        {isModalOpen && selectedProduct && selectedProduct.produitId && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 md:p-8 rounded-xl max-w-lg w-full relative shadow-2xl animate-fade-in-up">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-4 right-4 text-[#8c7e71] hover:text-[#3b332b] text-2xl leading-none"
+              >
+                ✕
+              </button>
+              
+              {selectedProduct.produitId.image ? (
+                <img 
+                  src={selectedProduct.produitId.image} 
+                  alt={selectedProduct.produitId.titre} 
+                  className="w-full h-64 object-cover rounded-lg mb-5 border border-[#ece5dd]" 
+                />
+              ) : (
+                <div className="w-full h-64 bg-[#f4ece2] rounded-lg mb-5 flex items-center justify-center text-[#8c7e71] border border-[#ece5dd]">Image non disponible</div>
+              )}
+              
+              <h3 className="text-2xl font-bold text-[#3b332b] mb-1">{selectedProduct.produitId.titre}</h3>
+              <p className="text-xl font-bold text-[#cba88c] mb-4">{selectedProduct.produitId.prix} TND</p>
+              
+              {selectedProduct.produitId.description && (
+                <p className="text-[#8c7e71] leading-relaxed mb-6 text-sm">
+                  {selectedProduct.produitId.description}
+                </p>
+              )}
+              
+              <div className="bg-[#fdfaf6] p-5 rounded-lg border border-[#ece5dd]">
+                <h4 className="font-semibold text-[#4a4036] mb-3">Détails de l'achat</h4>
+                <div className="space-y-2 text-sm text-[#4a4036]">
+                  <p className="flex justify-between border-b border-[#ece5dd] pb-1">
+                    <span className="text-[#8c7e71]">Taille commandée:</span> 
+                    <span className="font-semibold">{selectedProduct.tailleChoisie}</span>
+                  </p>
+                  <p className="flex justify-between border-b border-[#ece5dd] pb-1">
+                    <span className="text-[#8c7e71]">Quantité:</span> 
+                    <span className="font-semibold">{selectedProduct.quantite || 1}</span>
+                  </p>
+                  <p className="flex justify-between pt-1">
+                    <span className="text-[#8c7e71]">Sous-total:</span> 
+                    <span className="font-bold text-[#3b332b]">{(selectedProduct.produitId.prix || 0) * (selectedProduct.quantite || 1)} TND</span>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
+      </div>
     </div>
   );
 }

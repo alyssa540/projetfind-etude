@@ -6,7 +6,9 @@ const productSchema = new mongoose.Schema({
   prix: { type: Number, required: true },
   taillesDisponibles: [{ type: String }], // ex: ["S", "M", "L"]
   image: { type: String }, // URL de l'image (Cloudinary/AWS)
+  isArchived: { type: Boolean, default: false },
   stylisteId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
+
 
 module.exports = mongoose.model('Product', productSchema);

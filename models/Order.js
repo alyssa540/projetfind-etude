@@ -7,9 +7,20 @@ const orderSchema = new mongoose.Schema({
   quantite: { type: Number, default: 1 },
   statut: { 
     type: String, 
-    enum: ['en_attente', 'confirmee', 'declinee'], 
+    // 👇 ZEDNA 'annulee' LEL ENUM HOUNI
+    enum: ['en_attente', 'confirmee', 'declinee', 'expediee', 'annulee'], 
     default: 'en_attente' 
-  }
+  },
+  adresseLivraison: {
+    type: String,
+    
+  },
+  telephoneContact: {
+    type: String,
+    
+  },
+  // 👇 ZEDNA HETHI LEL ARCHIVE
+  estArchivee: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

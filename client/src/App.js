@@ -16,9 +16,13 @@ import Home from "./components/Home";
 import Panier from "./components/Panier";
 import StylistOrders from "./components/StylistOrder";
 import MesCommandes from "./components/MesCommandes";
+import Archives from "./components/Archives";
+import EditProfil from "./components/EditProfil"; 
+import PreferenceForm from "./components/PreferenceForm";
 
 function App() {
   const dispatch = useDispatch();
+ 
 
   useEffect(() => {
     // Check if a token exists in localStorage when the app loads
@@ -49,6 +53,9 @@ function App() {
           <Route path="/stylist-orders" element={<StylistOrders />} />
           <Route path="/mes-ventes" element={<StylistOrders />} />
           <Route path="/mes-commandes" element={<MesCommandes />} />
+          <Route path="/edit-profile" element={<EditProfil />} />
+          <Route path="/archives" element={<Archives />} /> 
+          <Route path="/preference-form" element={<PreferenceForm />} />
         </Routes>
       </div>
     </div>

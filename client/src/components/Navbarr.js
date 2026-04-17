@@ -23,7 +23,7 @@ function Navbarr() {
         to="/" 
         className="text-black font-serif text-[1.8rem] font-bold tracking-[1px] mr-[60px] whitespace-nowrap"
       >
-        FashionHubStyle
+        STYLIQUE
       </Link>
 
       {/* Main Flex Container for Links, Search, and Profile */}
@@ -48,6 +48,7 @@ function Navbarr() {
               <Link to="/mes-commandes" className={navLinkStyle}>Mes commandes</Link>
             </>
           )}
+          
 
           {/* Liens spécifiques au STYLISTE */}
           {user?.role === "styliste" && (
@@ -58,6 +59,15 @@ function Navbarr() {
               </Link>
             </>
           )}
+          {/* Code mtaa navbar mte3ek ... */}
+
+          {user && user.role === "styliste" && (
+          <Link to="/archives"  className={navLinkStyle}>
+          Mes Archives
+          </Link>
+                )}
+
+{/* ... Code ... */}
 
           {/* Liens spécifiques à l'ADMIN */}
           {user?.role === "admin" && (
@@ -65,7 +75,7 @@ function Navbarr() {
           )}
         </div>
 
-        {/* Barre de recherche */}
+        {/* Barre de recherche 
         <form className="flex items-center mx-4">
           <input
             type="search"
@@ -79,12 +89,25 @@ function Navbarr() {
           >
             Chercher
           </button>
-        </form>
+        </form>*/}
+        {user && (
+          <div className="flex flex-row items-center space-x-4">
+             <Link to="/profil" className={`${navLinkStyle} !mx-0 mr-4`}>Profil</Link>
+            
+            <button 
+              onClick={handleLogout} 
+              className="bg-black text-white border-none rounded-none uppercase text-[0.75rem] tracking-[1px] py-[8px] px-[15px] hover:bg-[#333] transition-colors" onClick={() => navigate("/edit-profile")}
+            >
+              Mettre à jour
+            </button>
+          </div>
+        )}
+        
 
         {/* Profil et Déconnexion */}
         {user && (
-          <div className="flex flex-row items-center space-x-4">
-            <Link to="/profil" className={`${navLinkStyle} !mx-0 mr-4`}>Profil</Link>
+          <div className="flex flex-row items-center space-x-4 ml-4">
+           
             <button 
               onClick={handleLogout} 
               className="bg-black text-white border-none rounded-none uppercase text-[0.75rem] tracking-[1px] py-[8px] px-[15px] hover:bg-[#333] transition-colors"
@@ -93,6 +116,10 @@ function Navbarr() {
             </button>
           </div>
         )}
+         
+         {/*<div className="btn-group">
+                <button className="btn-custom btn-nude-dark"  onClick={() => navigate("/edit-profile")}>Mettre à jour</button>
+              </div>*/}
         
       </div>
     </nav>

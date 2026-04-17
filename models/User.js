@@ -11,9 +11,13 @@ const userSchema = new mongoose.Schema({
     required: true 
   },
   taille: { type: String },
-  adress: { type: String},
+  adress: { type: String },
   phone: { type: String },
+  
 
+  nom_marque: { type: String }, 
+  logo: { type: String }, 
+  
   estBloque: { type: Boolean, default: false } 
 }, { timestamps: true });
 

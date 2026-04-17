@@ -4,7 +4,6 @@ import { userRegister } from "../JS/userSlice/userSlice";
 import { Link, useNavigate } from "react-router-dom";
 
 function Register() {
-  // 1. Update state to include all possible fields
   const [register, setregister] = useState({
     name: "",
     lastname: "",
@@ -14,31 +13,21 @@ function Register() {
     taille: "",
     adress: "",
     phone: "",
+    logo: null,     // Raddineha null bech ta9bel fichier (taswira)
+    nom_marque: "",
   });
   
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // 4. Handle form submission and validation
   const handleRegister = (e) => {
     e.preventDefault();
 
-    // Base validation for both roles
-    if (!register.name || !register.lastname || !register.email || !register.password) {
-      alert("Veuillez remplir le nom, prénom, email et mot de passe.");
-      return;
-    }
+    // Na7ina l'conditions lkol! (7ata chay mouch obligatoire tawa)
 
-    // Specific validation for 'client'
-    if (register.role === "client") {
-      if (!register.taille || !register.adress || !register.phone) {
-        alert("En tant que client, veuillez renseigner votre taille, adresse et numéro de téléphone.");
-        return;
-      }
-    }
-
-    // If validation passes, dispatch and navigate
+    // L'envoie lel Redux
     dispatch(userRegister(register));
+    
     setTimeout(() => {
       navigate("/profil");
     }, 1000);
@@ -50,7 +39,7 @@ function Register() {
         <form onSubmit={handleRegister} className="form-signin">
           <h2 className="form-signin-heading">Inscription</h2>
           
-          {/* 2. ROLE SELECTION BUTTONS */}
+          {/* ROLE SELECTION BUTTONS */}
           <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
             <button
               type="button"
@@ -70,61 +59,94 @@ function Register() {
             </button>
           </div>
 
-          {/* COMMON FIELDS (Required for everyone) */}
+          {/* COMMON FIELDS */}
           <input
             type="text"
             className="form-control"
             name="name"
-            placeholder="Name *"
+            placeholder="Name"
             onChange={(e) => setregister({ ...register, name: e.target.value })}
           />
           <input
             type="text"
             className="form-control"
             name="LastName"
-            placeholder="Last Name *"
+            placeholder="Last Name"
             onChange={(e) => setregister({ ...register, lastname: e.target.value })}
           />
           <input
             type="email"
             className="form-control"
             name="email"
-            placeholder="Email Address *"
+            placeholder="Email Address"
             onChange={(e) => setregister({ ...register, email: e.target.value })}
           />
           <input
             type="password"
             className="form-control"
             name="Password"
-            placeholder="Password *"
+            placeholder="Password"
             onChange={(e) => setregister({ ...register, password: e.target.value })}
           />
 
-          {/* 3. CONDITIONAL FIELDS (Only for Clients) */}
+          {/* CONDITIONAL FIELDS (Only for Clients) */}
           {register.role === "client" && (
             <div style={{ marginTop: "15px", marginBottom: "15px", padding: "10px", border: "1px solid #ccc", borderRadius: "5px" }}>
-              <h5 style={{ fontSize: "14px", color: "gray", marginBottom:"10px" }}>Informations Client (Obligatoires)</h5>
+              <h5 style={{ fontSize: "14px", color: "gray", marginBottom:"10px" }}>Informations Client</h5>
               <input
                 type="text"
                 className="form-control"
                 name="taille"
-                placeholder="Taille *"
+                placeholder="Taille"
                 onChange={(e) => setregister({ ...register, taille: e.target.value })}
               />
               <input
                 type="text"
                 className="form-control"
                 name="adress"
-                placeholder="Adresse *"
+                placeholder="Adresse"
                 onChange={(e) => setregister({ ...register, adress: e.target.value })}
               />
               <input
                 type="text"
                 className="form-control"
                 name="phone"
-                placeholder="Téléphone *"
+                placeholder="Téléphone"
                 onChange={(e) => setregister({ ...register, phone: e.target.value })}
               />
+            </div>
+          )}
+
+          {/* CONDITIONAL FIELDS (Only for Stylistes) */}
+          {register.role === "styliste" && (
+            <div style={{ marginTop: "15px", marginBottom: "15px", padding: "10px", border: "1px solid #ccc", borderRadius: "5px", backgroundColor: "#f9f9f9" }}>
+              <h5 style={{ fontSize: "14px", color: "gray", marginBottom:"10px" }}>Informations Styliste</h5>
+              <input
+                type="text"
+                className="form-control"
+                name="nom_marque"
+                placeholder="Nom de votre Marque"
+                onChange={(e) => setregister({ ...register, nom_marque: e.target.value })}
+              />
+              <input
+                type="text"
+                className="form-control"
+                name="adress"
+                placeholder="Adresse de l'atelier/boutique"
+                onChange={(e) => setregister({ ...register, adress: e.target.value })}
+              />
+              
+              {/* L'Input JDID mtaa l'Upload Taswira */}
+              <div style={{ marginTop: "10px" }}>
+                <label style={{ fontSize: "13px", color: "gray" }}>Upload Logo :</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="form-control"
+                  name="logo"
+                  onChange={(e) => setregister({ ...register, logo: e.target.files[0] })}
+                />
+              </div>
             </div>
           )}
 

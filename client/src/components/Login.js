@@ -5,57 +5,58 @@ import { userlogin } from "../JS/userSlice/userSlice";
 
 function Login() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
   const [login, setlogin] = useState({
     email: "",
     password: "",
   });
-  const dispatch = useDispatch();
+
+  // Fonction bech n-gériw biha e-submit mta3 l'formulaire
+  const handleLogin = (e) => {
+    e.preventDefault(); // tna7i l'rechargement mta3 l'page
+    
+    // Naba3thou l'action lel Redux
+    dispatch(userlogin(login));
+    
+    // N-naviguiw lel profil
+    navigate("/profil"); 
+  };
+
   return (
     <div>
       <div className="wrapper">
-        <form onSubmit={(e) => e.preventDefault()} className="form-signin">
-          <h2 className="form-signin-heading">conneter vous</h2>
+        <form onSubmit={handleLogin} className="form-signin">
+          <h2 className="form-signin-heading">Connectez-vous</h2>
+          
           <input
-            type="text"
-            class="form-control"
-            name="username"
+            type="email" // Baddalnaha email bech navigateur y-verifi l'format
+            className="form-control" // className fi 3oudh class
+            name="email"
             placeholder="Email Address"
-            required=""
-            autofocus=""
+            required
+            autoFocus
             onChange={(e) => setlogin({ ...login, email: e.target.value })}
           />
+          
           <input
-            type="text"
-            class="form-control"
-            name="Password"
+            type="password" // Baddalnaha password bech l'ketba tetkhabba
+            className="form-control" // className fi 3oudh class
+            name="password"
             placeholder="Password"
-            required=""
-            autofocus=""
+            required
             onChange={(e) => setlogin({ ...login, password: e.target.value })}
           />
 
-        {/* <label class="checkbox">
-            <input
-              type="checkbox"
-              value="remember-me"
-              id="rememberMe"
-              name="rememberMe"
-            />{" "}
-            Remember me
-          </label>*/}
           <button
+            type="submit" // Zidna type submit bech y-déclenchi l'onSubmit mta3 l'form
             className="btn btn-lg btn-primary btn-block"
-            onClick={() => {
-              setTimeout(() => {
-                dispatch(userlogin(login));
-                navigate("/profil");
-              }, 1000);
-            }}
           >
-            se connecter
+            Se connecter
           </button>
-          <h5 style={{marginTop:"30px"}}>
-            tu n'as pas de compte <Link to="/register">insicrire maintenant</Link>{" "}
+          
+          <h5 style={{ marginTop: "30px" }}>
+            Tu n'as pas de compte ? <Link to="/register">S'inscrire maintenant</Link>
           </h5>
         </form>
       </div>

@@ -37,12 +37,38 @@ router.post("/add", isAuth(), async (req, res) => {
 // @access  Public (pas besoin de isAuth ici)
 router.get("/all", async (req, res) => {
   try {
-    // .populate() permet de récupérer les infos du styliste lié au produit
-    const products = await Product.find().populate("stylisteId", "name lastname");
+    // 👇 CORRECTION: Zedt { isArchived: { $ne: true } } bech l'produits l'm'archivin ma yodh'hrouch w l'9dom yodh'hrou
+    const products = await Product.find({ isArchived: { $ne: true } }).populate("stylisteId", "name lastname");
     res.status(200).send({ products, msg: "Catalogue récupéré avec succès" });
   } catch (error) {
     console.log(error);
     res.status(500).send({ msg: "Erreur lors de la récupération des produits" });
+  }
+});
+
+// ==========================================
+// 👇 NOUVELLE ROUTE : RÉCUPÉRER LES CRÉATIONS ARCHIVÉES 
+// ==========================================
+// @route   GET api/products/stylist/archives
+// @desc    Récupérer les créations archivées du styliste connecté
+// @access  Private
+router.get("/stylist/archives", isAuth(), async (req, res) => {
+  try {
+    // Vérification elli houwa styliste
+    if (req.user.role !== "styliste") {
+      return res.status(401).send({ msg: "Non autorisé" });
+    }
+    
+    // 👇 CORRECTION ICI : isArchived: true
+    const creationsArchivees = await Product.find({ 
+      stylisteId: req.user._id, 
+      isArchived: true 
+    });
+    
+    res.status(200).send({ creations: creationsArchivees, msg: "Créations archivées récupérées avec succès" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ msg: "Erreur lors de la récupération des créations archivées" });
   }
 });
 
@@ -69,6 +95,7 @@ router.delete("/:id", isAuth(), async (req, res) => {
     res.status(500).send({ msg: "Erreur lors de la suppression" });
   }
 });
+
 // PUT : Modifier un produit (par son ID)
 router.put("/:id",isAuth(), async (req, res) => {
   try {
@@ -89,6 +116,47 @@ router.put("/:id",isAuth(), async (req, res) => {
     res.status(200).send({ msg: "Produit mis à jour avec succès !", product: updatedProduct });
   } catch (error) {
     res.status(500).send({ msg: "Erreur lors de la modification", error });
+  }
+});
+
+// @route   PUT api/products/:id/archive
+// @desc    Archiver un produit (au lieu de le supprimer)
+router.put("/:id/archive", isAuth(), async (req, res) => {
+  try {
+    if (req.user.role !== "styliste") {
+      return res.status(401).send({ msg: "Non autorisé" });
+    }
+    
+    // 👇 CORRECTION ICI : isArchived: true
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.id, 
+      { $set: { isArchived: true } }, 
+      { new: true }
+    );
+    
+    res.status(200).send({ product: updatedProduct, msg: "Produit archivé avec succès" });
+  } catch (error) {
+    res.status(500).send({ msg: "Erreur lors de l'archivage du produit" });
+  }
+});
+// @route   PUT api/products/:id/unarchive
+// @desc    Désarchiver un produit (le remettre dans le catalogue)
+router.put("/:id/unarchive", isAuth(), async (req, res) => {
+  try {
+    if (req.user.role !== "styliste") {
+      return res.status(401).send({ msg: "Non autorisé" });
+    }
+    
+    // 👇 Nraj3ou isArchived false
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.id, 
+      { $set: { isArchived: false } }, 
+      { new: true }
+    );
+    
+    res.status(200).send({ product: updatedProduct, msg: "Produit désarchivé avec succès" });
+  } catch (error) {
+    res.status(500).send({ msg: "Erreur lors du désarchivage du produit" });
   }
 });
 
