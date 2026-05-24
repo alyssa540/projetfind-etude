@@ -21,7 +21,7 @@ function Archives() {
     const fetchArchives = async () => {
       try {
         const token = localStorage.getItem("token");
-        const config = { headers: { Authorization: token } };
+        const config = { headers: { Authorization: `Bearer ${token}` } };
         
         // 1. Njibou les Commandes Archivées
         const resOrders = await axios.get("http://localhost:5000/api/orders/stylist/archives", config);
@@ -46,9 +46,9 @@ function Archives() {
     try {
       const token = localStorage.getItem("token");
       await axios.put(`http://localhost:5000/api/products/${id}/unarchive`, {}, {
-        headers: { Authorization: token }
+        headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       // Mettre à jour l'affichage : nna7iw l'produit m'l'archive f'wa9tha
       setMesCreations(mesCreations.filter((creation) => creation._id !== id));
       alert("Création restaurée avec succès dans votre catalogue !");
@@ -60,28 +60,28 @@ function Archives() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] pt-28 pb-12 px-5 font-sans text-[#3b332b]">
+    <div className="min-h-screen bg-[#FAF9F7] pt-32 pb-24 px-6 font-sans text-black relative">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-center text-3xl font-semibold mb-10 text-[#3b332b]">Mes Archives</h2>
+        <h2 className="text-center text-4xl md:text-5xl font-black uppercase tracking-tighter mb-12 text-black">Mes Archives</h2>
 
         {/* --- ONGLETS (TABS) --- */}
-        <div className="flex flex-wrap justify-center gap-4 mb-10">
+        <div className="flex flex-wrap justify-center gap-6 mb-16">
           <button
             onClick={() => setActiveTab("commandes")}
-            className={`px-6 py-2.5 rounded-md font-semibold transition-all duration-300 ${
+            className={`px-8 py-4 font-black uppercase tracking-widest text-sm border-4 border-black transition-all rounded-none ${
               activeTab === "commandes" 
-                ? "bg-[#3b332b] text-white shadow-md" 
-                : "bg-[#f4ece2] text-[#8c7e71] hover:bg-[#ece5dd]"
+                ? "bg-[#e6ff00] text-black translate-x-[2px] translate-y-[2px] shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]" 
+                : "bg-white text-black hover:bg-black hover:text-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
             }`}
           >
             Commandes Archivées
           </button>
           <button
             onClick={() => setActiveTab("creations")}
-            className={`px-6 py-2.5 rounded-md font-semibold transition-all duration-300 ${
+            className={`px-8 py-4 font-black uppercase tracking-widest text-sm border-4 border-black transition-all rounded-none ${
               activeTab === "creations" 
-                ? "bg-[#3b332b] text-white shadow-md" 
-                : "bg-[#f4ece2] text-[#8c7e71] hover:bg-[#ece5dd]"
+                ? "bg-[#e6ff00] text-black translate-x-[2px] translate-y-[2px] shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]" 
+                : "bg-white text-black hover:bg-black hover:text-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
             }`}
           >
             Créations Archivées
@@ -90,43 +90,45 @@ function Archives() {
 
         {/* --- AFFICHAGE DES COMMANDES ARCHIVÉES --- */}
         {activeTab === "commandes" && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {mesCommandes.length === 0 ? (
-              <p className="text-center text-[#8c7e71] py-10 bg-white border border-[#ece5dd] rounded-xl border-dashed">
-                Aucune commande archivée pour le moment.
-              </p>
+              <div className="text-center p-12 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <p className="font-serif italic text-gray-600 font-bold text-lg">
+                  Aucune commande archivée pour le moment.
+                </p>
+              </div>
             ) : (
               mesCommandes.map((cmd) => (
-                <div key={cmd._id} className="bg-white border border-[#ece5dd] p-5 rounded-xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-5 hover:shadow-md transition-shadow">
+                <div key={cmd._id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
                   
                   <div className="flex-grow">
-                    <div className="flex items-center gap-4 mb-3">
+                    <div className="flex items-center gap-6 mb-4">
                       {cmd.produitId?.image ? (
                         <img 
                           src={cmd.produitId.image} 
                           alt={cmd.produitId.titre} 
-                          className="w-14 h-14 object-cover rounded-lg border border-[#ece5dd]"
+                          className="w-20 h-20 object-cover border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] grayscale hover:grayscale-0 transition-all"
                         />
                       ) : (
-                        <div className="w-14 h-14 bg-[#f4ece2] rounded-lg border border-[#ece5dd] flex items-center justify-center text-[#8c7e71] text-xs">Image</div>
+                        <div className="w-20 h-20 bg-[#e6ff00] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black uppercase text-xs">Image</div>
                       )}
-                      <h4 className="font-semibold text-lg text-[#3b332b] m-0">{cmd.produitId?.titre || "Produit inconnu"}</h4>
+                      <h4 className="font-black text-xl uppercase tracking-wider text-black m-0">{cmd.produitId?.titre || "Produit inconnu"}</h4>
                     </div>
                     
-                    <div className="text-sm text-[#8c7e71] space-y-1">
-                      <p><strong className="text-[#4a4036] font-medium">Client :</strong> {cmd.clientId?.name || ""} {cmd.clientId?.lastname || ""} <span className="text-xs">({cmd.clientId?.email})</span></p>
-                      <p><strong className="text-[#4a4036] font-medium">Taille :</strong> {cmd.tailleChoisie}</p>
-                      <p><strong className="text-[#4a4036] font-medium">Statut final :</strong> <span className="capitalize">{cmd.statut.replace("_", " ")}</span></p>
+                    <div className="text-sm font-bold text-black space-y-2 uppercase tracking-wide">
+                      <p><span className="text-gray-500 mr-2">Client:</span> {cmd.clientId?.name || ""} {cmd.clientId?.lastname || ""} <span className="lowercase text-xs bg-black text-white px-2 py-1 ml-2">{cmd.clientId?.email}</span></p>
+                      <p><span className="text-gray-500 mr-2">Taille:</span> <span className="bg-[#e6ff00] px-2 py-1 border-2 border-black">{cmd.tailleChoisie}</span></p>
+                      <p><span className="text-gray-500 mr-2">Statut:</span> <span className="bg-white px-2 py-1 border-2 border-black">{cmd.statut.replace("_", " ")}</span></p>
                     </div>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
-                    <span className="px-3 py-1.5 bg-[#f4ece2] text-[#8c7e71] rounded-md text-xs font-semibold whitespace-nowrap">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
+                    <span className="px-4 py-2 bg-white text-black border-4 border-black font-black uppercase text-xs tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap">
                       Commande Archivée
                     </span>
                     <button 
                       onClick={() => setSelectedProduct(cmd.produitId)} 
-                      className="w-full sm:w-auto px-4 py-2 bg-[#3b332b] text-white text-sm font-semibold rounded-md hover:bg-[#2a241e] transition-colors whitespace-nowrap"
+                      className="w-full sm:w-auto px-6 py-3 bg-black text-white font-black uppercase tracking-widest text-xs border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap"
                     >
                       Voir détails
                     </button>
@@ -139,52 +141,54 @@ function Archives() {
 
         {/* --- AFFICHAGE DES CRÉATIONS ARCHIVÉES --- */}
         {activeTab === "creations" && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {mesCreations.length === 0 ? (
-              <p className="text-center text-[#8c7e71] py-10 bg-white border border-[#ece5dd] rounded-xl border-dashed">
-                Aucune création archivée pour le moment.
-              </p>
+              <div className="text-center p-12 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <p className="font-serif italic text-gray-600 font-bold text-lg">
+                  Aucune création archivée pour le moment.
+                </p>
+              </div>
             ) : (
               mesCreations.map((creation) => (
-                <div key={creation._id} className="bg-white border border-[#ece5dd] p-5 rounded-xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-5 hover:shadow-md transition-shadow">
+                <div key={creation._id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
                   
                   <div className="flex-grow">
-                    <div className="flex items-center gap-4 mb-3">
+                    <div className="flex items-center gap-6 mb-4">
                       {creation.image ? (
                         <img 
                           src={creation.image} 
                           alt={creation.titre} 
-                          className="w-14 h-14 object-cover rounded-lg border border-[#ece5dd]"
+                          className="w-20 h-20 object-cover border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] grayscale hover:grayscale-0 transition-all"
                         />
                       ) : (
-                        <div className="w-14 h-14 bg-[#f4ece2] rounded-lg border border-[#ece5dd] flex items-center justify-center text-[#8c7e71] text-xs">Image</div>
+                        <div className="w-20 h-20 bg-[#e6ff00] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black uppercase text-xs">Image</div>
                       )}
-                      <h4 className="font-semibold text-lg text-[#3b332b] m-0">{creation.titre}</h4>
+                      <h4 className="font-black text-xl uppercase tracking-wider text-black m-0">{creation.titre}</h4>
                     </div>
                     
-                    <div className="text-sm text-[#8c7e71] space-y-1">
-                      <p><strong className="text-[#4a4036] font-medium">Catégorie :</strong> {creation.categorie || "Non spécifiée"}</p>
-                      <p><strong className="text-[#4a4036] font-medium">Prix :</strong> <span className="text-[#cba88c] font-bold">{creation.prix} TND</span></p>
+                    <div className="text-sm font-bold text-black space-y-2 uppercase tracking-wide">
+                      <p><span className="text-gray-500 mr-2">Catégorie:</span> <span className="bg-white px-2 py-1 border-2 border-black">{creation.categorie || "Non spécifiée"}</span></p>
+                      <p><span className="text-gray-500 mr-2">Prix:</span> <span className="bg-[#e6ff00] px-3 py-1 border-2 border-black font-black">{creation.prix} TND</span></p>
                     </div>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
-                    <span className="hidden lg:block px-3 py-1.5 bg-[#f4ece2] text-[#8c7e71] rounded-md text-xs font-semibold whitespace-nowrap">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
+                    <span className="hidden lg:block px-4 py-2 bg-white text-black border-4 border-black font-black uppercase text-xs tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap">
                       Création Archivée
                     </span>
                     
-                    <div className="flex gap-2 w-full sm:w-auto">
+                    <div className="flex gap-4 w-full sm:w-auto">
                       <button 
                         onClick={() => handleUnarchive(creation._id)} 
-                        className="flex-1 sm:flex-none px-4 py-2 bg-[#6b8e6b] text-white text-sm font-semibold rounded-md hover:bg-[#5a7a5a] transition-colors whitespace-nowrap"
+                        className="flex-1 sm:flex-none px-6 py-3 bg-white text-black font-black uppercase tracking-widest text-xs border-4 border-black hover:bg-[#e6ff00] transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap"
                       >
                         Désarchiver 
                       </button>
                       <button 
                         onClick={() => setSelectedProduct(creation)} 
-                        className="flex-1 sm:flex-none px-4 py-2 bg-[#3b332b] text-white text-sm font-semibold rounded-md hover:bg-[#2a241e] transition-colors whitespace-nowrap"
+                        className="flex-1 sm:flex-none px-6 py-3 bg-black text-white font-black uppercase tracking-widest text-xs border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap"
                       >
-                        Voir détails
+                        Détails
                       </button>
                     </div>
                   </div>
@@ -197,63 +201,65 @@ function Archives() {
         {/* --- LE MODAL DE DÉTAILS --- */}
         {selectedProduct && (
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4"
             onClick={() => setSelectedProduct(null)}
           >
             <div 
-              className="bg-white p-6 rounded-xl w-full max-w-md relative shadow-2xl max-h-[90vh] flex flex-col"
+              className="bg-white border-4 border-black shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] w-full max-w-lg p-0 relative rounded-none flex flex-col max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
               <button 
                 onClick={() => setSelectedProduct(null)}
-                className="absolute top-4 right-4 text-3xl text-[#8c7e71] hover:text-[#b86b6b] leading-none transition-colors"
+                className="absolute -top-6 -right-6 bg-[#e6ff00] border-4 border-black text-black w-14 h-14 flex items-center justify-center font-black text-2xl hover:bg-black hover:text-white transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10"
               >
                 &times;
               </button>
 
-              <h3 className="text-xl font-semibold text-[#3b332b] mb-4 pr-6 truncate">
-                {selectedProduct.titre}
-              </h3>
+              <div className="bg-[#e6ff00] px-8 py-6 border-b-4 border-black">
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-black m-0 pr-6 truncate">
+                  {selectedProduct.titre}
+                </h3>
+              </div>
               
-              <div className="overflow-y-auto pr-2 custom-scrollbar">
+              <div className="p-8 overflow-y-auto custom-scrollbar">
                 {selectedProduct.image && (
                   <img 
                     src={selectedProduct.image} 
                     alt={selectedProduct.titre} 
-                    className="w-full h-56 object-contain rounded-lg bg-[#fdfaf6] border border-[#ece5dd] mb-5"
+                    className="w-full h-64 object-cover bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-8 grayscale hover:grayscale-0 transition-all"
                   />
                 )}
 
-                <div className="text-sm text-[#4a4036] space-y-3">
+                <div className="text-sm font-bold text-black space-y-4 uppercase tracking-wider">
                   {selectedProduct.prix && (
-                    <p className="flex justify-between border-b border-[#ece5dd] pb-2">
-                      <strong className="text-[#8c7e71]">Prix :</strong> 
-                      <span className="font-bold text-[#cba88c]">{selectedProduct.prix} TND</span>
+                    <p className="flex justify-between items-center border-b-4 border-black pb-3">
+                      <strong className="text-gray-500">Prix :</strong> 
+                      <span className="font-black bg-[#e6ff00] px-3 py-1 border-2 border-black">{selectedProduct.prix} TND</span>
                     </p>
                   )}
                   {selectedProduct.categorie && (
-                    <p className="flex justify-between border-b border-[#ece5dd] pb-2">
-                      <strong className="text-[#8c7e71]">Catégorie :</strong> 
+                    <p className="flex justify-between items-center border-b-4 border-black pb-3">
+                      <strong className="text-gray-500">Catégorie :</strong> 
                       <span>{selectedProduct.categorie}</span>
                     </p>
                   )}
                   {selectedProduct.description && (
                     <div className="pt-2">
-                      <strong className="text-[#8c7e71] block mb-1">Description :</strong>
-                      <p className="bg-[#fdfaf6] p-3 rounded-md border border-[#ece5dd] leading-relaxed">
+                      <strong className="text-gray-500 block mb-3">Description :</strong>
+                      <p className="bg-white p-5 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] leading-relaxed font-serif italic normal-case text-base">
                         {selectedProduct.description}
                       </p>
                     </div>
                   )}
                 </div>
-              </div>
 
-              <button 
-                onClick={() => setSelectedProduct(null)}
-                className="w-full mt-6 py-2.5 bg-[#3b332b] text-white font-semibold rounded-md hover:bg-[#2a241e] transition-colors"
-              >
-                Fermer
-              </button>
+                <button 
+                  onClick={() => setSelectedProduct(null)}
+                  className="w-full mt-10 py-4 bg-black text-white font-black uppercase tracking-widest text-sm border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1"
+                >
+                  Fermer
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -11,6 +11,14 @@ function AddProduct() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
+  // Nouveaux states pour les inputs de couleurs personnalisées
+  const [couleurInput, setCouleurInput] = useState("");
+  const [editCouleurInput, setEditCouleurInput] = useState("");
+
+  const styles = ["Minimaliste", "Bohème", "Chic", "Streetwear", "Classique", "Vintage", "Avant-garde"];
+  const occasions = ["Casual", "Soirée", "Travail", "Cérémonie", "Sport", "Vacances"];
+  const categories = ["Robe", "Haut", "Bas", "Veste/Manteau", "Ensemble", "Accessoire"];
+
   useEffect(() => {
     if (user && user.role === 'styliste') {
       const fetchMesCreations = async () => {
@@ -29,12 +37,17 @@ function AddProduct() {
     }
   }, [user]);
 
+  // On remplace 'couleur' par 'couleurs: []'
   const [product, setProduct] = useState({
     titre: "",
     description: "",
     prix: "",
     image: "",
     taillesDisponibles: [],
+    style: "",
+    couleurs: [], // <-- CHANGEMENT ICI
+    occasion: "",
+    categorie: "",
   });
 
   const handleImageUpload = (e, isEditing = false) => {
@@ -77,6 +90,40 @@ function AddProduct() {
     }
   };
 
+  // --- FONCTIONS POUR GÉRER LES COULEURS ---
+  const handleAddColor = (e, isEditing = false) => {
+    e.preventDefault();
+    if (isEditing) {
+      if (editCouleurInput.trim() && !(editingProduct.couleurs || []).includes(editCouleurInput.trim())) {
+        setEditingProduct({ 
+          ...editingProduct, 
+          couleurs: [...(editingProduct.couleurs || []), editCouleurInput.trim()] 
+        });
+        setEditCouleurInput("");
+      }
+    } else {
+      if (couleurInput.trim() && !product.couleurs.includes(couleurInput.trim())) {
+        setProduct({ ...product, couleurs: [...product.couleurs, couleurInput.trim()] });
+        setCouleurInput("");
+      }
+    }
+  };
+
+  const handleRemoveColor = (colorToRemove, isEditing = false) => {
+    if (isEditing) {
+      setEditingProduct({
+        ...editingProduct,
+        couleurs: (editingProduct.couleurs || []).filter((c) => c !== colorToRemove)
+      });
+    } else {
+      setProduct({
+        ...product,
+        couleurs: product.couleurs.filter((c) => c !== colorToRemove)
+      });
+    }
+  };
+  // ------------------------------------------
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -84,11 +131,12 @@ function AddProduct() {
       const res = await axios.post(
         "http://localhost:5000/api/products/add",
         product,
-        { headers: { Authorization: token } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-    
+
       setMesCreations([...mesCreations, res.data.product]);
-      setProduct({ titre: "", description: "", prix: "", image: "", taillesDisponibles: [] });
+      setProduct({ titre: "", description: "", prix: "", image: "", taillesDisponibles: [], style: "", couleurs: [], occasion: "", categorie: "" });
+      setCouleurInput("");
     } catch (error) {
       console.error(error);
       alert("Erreur lors de l'ajout de la création. (Vérifiez la taille de l'image)");
@@ -101,7 +149,7 @@ function AddProduct() {
     try {
       const token = localStorage.getItem("token");
       await axios.put(`http://localhost:5000/api/products/${id}/archive`, {}, {
-        headers: { Authorization: token },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setMesCreations(mesCreations.filter((creation) => creation._id !== id));
       
@@ -112,7 +160,12 @@ function AddProduct() {
   };
 
   const openEditModal = (creation) => {
-    setEditingProduct(creation);
+    // S'assurer que couleurs est un tableau même si l'ancien produit avait un string
+    const formattedCreation = {
+      ...creation,
+      couleurs: Array.isArray(creation.couleurs) ? creation.couleurs : (creation.couleur ? [creation.couleur] : [])
+    };
+    setEditingProduct(formattedCreation);
     setIsModalOpen(true);
   };
 
@@ -123,12 +176,13 @@ function AddProduct() {
       const res = await axios.put(
         `http://localhost:5000/api/products/${editingProduct._id}`,
         editingProduct,
-        { headers: { Authorization: token } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       setMesCreations(mesCreations.map((c) => (c._id === editingProduct._id ? res.data.product : c)));
       setIsModalOpen(false);
       setEditingProduct(null);
+      setEditCouleurInput("");
       
     } catch (error) {
       console.error(error);
@@ -138,30 +192,39 @@ function AddProduct() {
 
   if (user?.role !== "styliste") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] bg-[#fdfaf6] font-sans">
-        <h2 className="text-[#3b332b] font-light text-2xl mb-2">Accès refusé</h2>
-        <p className="text-[#8c7e71]">Espace réservé aux créateurs.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF9F7] font-sans">
+        <h2 className="text-3xl font-black uppercase tracking-widest text-black mb-4">Accès refusé</h2>
+        <p className="font-serif italic text-xl text-gray-800 mb-8">Espace réservé aux créateurs.</p>
+        <button 
+          className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-sm border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all hover:-translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          onClick={() => navigate("/")}
+        >
+          Retour à l'accueil
+        </button>
       </div>
     );
   }
 
-  // Classes réutilisables pour les inputs
-  const inputClass = "w-full p-2.5 border border-[#ece5dd] rounded-md focus:outline-none focus:border-[#cba88c] focus:ring-1 focus:ring-[#cba88c] transition-colors bg-[#fdfaf6] text-[#3b332b] text-sm";
-  const labelClass = "block text-sm font-medium text-[#4a4036] mb-1.5";
-  const fileInputClass = "w-full text-sm text-[#8c7e71] file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#f4ece2] file:text-[#cba88c] hover:file:bg-[#ece5dd] file:cursor-pointer transition-colors border border-[#ece5dd] rounded-md bg-[#fdfaf6]";
+  const inputClass = "w-full p-4 bg-white border-4 border-black text-black font-bold uppercase text-sm tracking-wider focus:outline-none focus:bg-[#e6ff00] transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-none";
+  const labelClass = "block font-black uppercase tracking-widest text-sm mb-2 mt-6 text-black";
+  const fileInputClass = "w-full text-sm text-black font-bold uppercase file:mr-4 file:py-3 file:px-4 file:border-r-4 file:border-black file:border-y-0 file:border-l-0 file:text-sm file:font-black file:uppercase file:bg-[#e6ff00] file:text-black hover:file:bg-black hover:file:text-white file:cursor-pointer transition-colors border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white rounded-none";
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] py-12 px-4 sm:px-6 lg:px-8 font-sans text-[#3b332b]">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-[#FAF9F7] pt-32 pb-24 px-6 font-sans text-black relative">
+      <div className="max-w-7xl mx-auto">
         
         {/* --- FORMULAIRE D'AJOUT --- */}
-        <div className="max-w-2xl mx-auto bg-white border border-[#ece5dd] rounded-xl shadow-sm p-8 mb-16">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-semibold text-[#3b332b] mb-2">Nouvelle Création</h2>
-            <p className="text-[#8c7e71] text-sm">Ajoutez les détails de votre nouvelle pièce à votre collection.</p>
+        <div className="max-w-3xl mx-auto bg-white border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] p-8 md:p-12 mb-24 relative">
+          
+          <div className="absolute -top-6 -left-6 bg-[#e6ff00] border-4 border-black px-6 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter m-0 text-black">Nouvelle Création</h2>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="mb-8 mt-4">
+            <p className="font-serif italic text-gray-600 font-bold text-lg">Ajoutez les détails pour améliorer les recommandations et enrichir votre catalogue.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className={labelClass}>Nom de la création</label>
               <input
@@ -177,16 +240,87 @@ function AddProduct() {
             <div>
               <label className={labelClass}>Description</label>
               <textarea
-                placeholder="Description détaillée du vêtement, de la matière, etc."
+                placeholder="Description détaillée du vêtement..."
                 required
                 rows="3"
-                className={`${inputClass} resize-none`}
+                className={`${inputClass} resize-y`}
                 value={product.description}
                 onChange={(e) => setProduct({ ...product, description: e.target.value })}
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label className={labelClass}>Catégorie</label>
+                <select required className={inputClass} value={product.categorie} onChange={(e) => setProduct({ ...product, categorie: e.target.value })}>
+                  <option value="" disabled>Choisir une catégorie</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              
+              <div>
+                <label className={labelClass}>Style</label>
+                <select required className={inputClass} value={product.style} onChange={(e) => setProduct({ ...product, style: e.target.value })}>
+                  <option value="" disabled>Choisir un style</option>
+                  {styles.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* NOUVELLE GESTION DES COULEURS */}
+              <div>
+                <label className={labelClass}>Couleurs</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Ex: Bleu Marine"
+                    className={`${inputClass} flex-1`}
+                    value={couleurInput}
+                    onChange={(e) => setCouleurInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddColor(e, false);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => handleAddColor(e, false)}
+                    className="px-4 py-2 bg-black text-white font-black uppercase text-sm border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+                
+                {/* Affichage des tags de couleurs */}
+                {product.couleurs.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {product.couleurs.map((couleur, index) => (
+                      <span key={index} className="flex items-center gap-2 bg-white border-2 border-black px-3 py-1 text-xs font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        {couleur}
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveColor(couleur, false)}
+                          className="text-red-500 hover:text-black text-lg leading-none"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className={labelClass}>Occasion</label>
+                <select required className={inputClass} value={product.occasion} onChange={(e) => setProduct({ ...product, occasion: e.target.value })}>
+                  <option value="" disabled>Choisir une occasion</option>
+                  {occasions.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-6">
               <div className="w-full sm:w-1/3">
                 <label className={labelClass}>Prix (TND)</label>
                 <input
@@ -210,18 +344,17 @@ function AddProduct() {
               </div>
             </div>
 
-            {/* PREVIEW DE L'IMAGE AJOUTÉE */}
             {product.image && (
-              <div className="flex justify-center mt-4">
-                <img src={product.image} alt="Aperçu" className="max-w-[200px] h-auto rounded-lg border border-[#ece5dd] object-cover shadow-sm" />
+              <div className="flex justify-center mt-6">
+                <img src={product.image} alt="Aperçu" className="max-w-[250px] h-auto border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] object-cover" />
               </div>
             )}
 
             <div>
               <label className={labelClass}>Tailles disponibles</label>
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-4 flex-wrap mt-2">
                 {["XS", "S", "M", "L", "XL"].map((taille) => (
-                  <label key={taille} className="cursor-pointer flex items-center">
+                  <label key={taille} className="cursor-pointer flex items-center relative">
                     <input 
                       type="checkbox" 
                       value={taille} 
@@ -229,7 +362,7 @@ function AddProduct() {
                       checked={product.taillesDisponibles.includes(taille)}
                       className="hidden peer"
                     />
-                    <span className="px-4 py-2 bg-[#fdfaf6] border border-[#ece5dd] rounded-md text-sm text-[#8c7e71] font-medium peer-checked:bg-[#cba88c] peer-checked:text-white peer-checked:border-[#cba88c] transition-all hover:bg-[#f4ece2] peer-checked:hover:bg-[#b59276]">
+                    <span className="w-12 h-12 flex items-center justify-center bg-white border-4 border-black text-black font-black uppercase tracking-widest peer-checked:bg-[#e6ff00] peer-checked:translate-x-[2px] peer-checked:translate-y-[2px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] peer-checked:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] transition-all">
                       {taille}
                     </span>
                   </label>
@@ -237,7 +370,7 @@ function AddProduct() {
               </div>
             </div>
 
-            <button type="submit" className="w-full mt-4 py-3 bg-[#cba88c] text-white font-semibold rounded-md hover:bg-[#b59276] transition-colors shadow-sm">
+            <button type="submit" className="w-full mt-10 py-5 bg-black text-white font-black uppercase tracking-widest text-lg border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all hover:-translate-y-1 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
               Publier ma création
             </button>
           </form>
@@ -245,45 +378,61 @@ function AddProduct() {
 
         {/* --- PORTFOLIO EN CARTES --- */}
         <div>
-          <h3 className="text-2xl font-semibold mb-6 border-b-2 border-[#ece5dd] pb-3 text-[#3b332b]">Mon Portfolio</h3>
+          <h3 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-12 border-b-8 border-black pb-4 text-black inline-block">Mon Portfolio</h3>
           
           {mesCreations.length === 0 ? (
-            <p className="text-center text-[#8c7e71] py-10 bg-white border border-[#ece5dd] rounded-xl border-dashed">
-              Vous n'avez pas encore ajouté de créations actives.
-            </p>
+            <div className="text-center p-12 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center max-w-2xl mx-auto">
+              <h4 className="text-2xl font-black uppercase mb-4 text-black tracking-widest">Aucune création</h4>
+              <p className="font-serif italic text-gray-600 font-bold">Vous n'avez pas encore ajouté de créations actives.</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {mesCreations.map((creation) => (
-                <div key={creation._id} className="bg-white border border-[#ece5dd] rounded-xl overflow-hidden shadow-sm flex flex-col hover:shadow-md transition-shadow group">
-                  <div className="relative h-64 overflow-hidden bg-[#fdfaf6]">
+                <div key={creation._id} className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col  transition-all group">
+                  
+                  <div className="relative h-72 border-b-4 border-black overflow-hidden bg-white">
                     <img 
                       src={creation.image || "https://via.placeholder.com/300x400"} 
                       alt={creation.titre} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      className="w-full h-full object-cover " 
                     />
                   </div>
                   
-                  <div className="p-5 flex flex-col flex-grow justify-between">
+                  <div className="p-6 flex flex-col flex-grow justify-between">
                     <div>
-                      <h4 className="font-semibold text-lg text-[#3b332b] mb-1 truncate">{creation.titre}</h4>
-                      <p className="font-bold text-[#cba88c] mb-4">{creation.prix} TND</p>
+                      <h4 className="font-black text-xl uppercase tracking-wider mb-3 text-black line-clamp-2 leading-tight">
+                        {creation.titre}
+                      </h4>
+                      <div className="font-black text-2xl bg-[#e6ff00] px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] inline-block mb-5">
+                        {creation.prix} TND
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {creation.categorie && <span className="text-xs font-bold uppercase tracking-wider bg-white border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{creation.categorie}</span>}
+                        {creation.style && <span className="text-xs font-bold uppercase tracking-wider bg-white border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{creation.style}</span>}
+                        {/* Affichage d'un tag couleur s'il y en a */}
+                        {(creation.couleurs && creation.couleurs.length > 0) && (
+                           <span className="text-xs font-bold uppercase tracking-wider bg-black text-white border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">+{creation.couleurs.length} Coul.</span>
+                        )}
+                      </div>
                     </div>
                     
-                    <div className="flex justify-between items-center pt-4 border-t border-[#ece5dd]">
+                    <div className="flex justify-between items-center pt-4 border-t-4 border-black gap-3">
                       <button 
                         onClick={() => openEditModal(creation)} 
-                        className="text-sm font-semibold text-[#8c7e71] hover:text-[#cba88c] transition-colors"
+                        className="flex-1 py-2 bg-white text-black font-black uppercase text-xs border-2 border-black "
                       >
                         Modifier
                       </button>
                       <button 
                         onClick={() => handleArchiveProduct(creation._id)} 
-                        className="text-sm font-semibold text-[#b86b6b] hover:text-[#9a5555] transition-colors"
+                        className="flex-1 py-2 bg-black text-white font-black uppercase text-xs border-2 border-black hover:bg-red-500 hover:text-white transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                       >
                         Archiver
                       </button>
                     </div>
                   </div>
+
                 </div>
               ))}
             </div>
@@ -292,23 +441,24 @@ function AddProduct() {
 
         {/* --- MODAL DE MODIFICATION --- */}
         {isModalOpen && editingProduct && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-            <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl flex flex-col max-h-[90vh]">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+            <div className="bg-white border-4 border-black shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] w-full max-w-3xl max-h-[90vh] flex flex-col relative rounded-none">
               
-              <div className="flex justify-between items-center px-6 py-4 border-b border-[#ece5dd] bg-[#fdfaf6] rounded-t-xl">
-                <h2 className="text-xl font-semibold text-[#3b332b] m-0">Modifier la Création</h2>
-                <button 
-                  onClick={() => setIsModalOpen(false)} 
-                  className="text-3xl text-[#8c7e71] hover:text-[#b86b6b] transition-colors leading-none"
-                >
-                  &times;
-                </button>
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="absolute -top-6 -right-6 bg-[#e6ff00] border-4 border-black text-black w-14 h-14 flex items-center justify-center font-black text-2xl hover:bg-black hover:text-white transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10"
+              >
+                &times;
+              </button>
+
+              <div className="px-8 py-6 border-b-4 border-black bg-[#e6ff00]">
+                <h2 className="text-3xl font-black uppercase tracking-tighter m-0 text-black">Modifier la Création</h2>
               </div>
 
-              <div className="p-6 overflow-y-auto">
+              <div className="p-8 overflow-y-auto">
                 {editingProduct.image && (
-                  <div className="mb-6 flex justify-center">
-                    <img src={editingProduct.image} alt={editingProduct.titre} className="max-w-full h-48 object-contain rounded-lg bg-[#fdfaf6] border border-[#ece5dd]" />
+                  <div className="mb-8 flex justify-center">
+                    <img src={editingProduct.image} alt={editingProduct.titre} className="max-w-full h-56 object-cover border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" />
                   </div>
                 )}
 
@@ -329,13 +479,82 @@ function AddProduct() {
                     <textarea
                       required
                       rows="3"
-                      className={`${inputClass} resize-none`}
+                      className={`${inputClass} resize-y`}
                       value={editingProduct.description}
                       onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
                     />
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <label className={labelClass}>Catégorie</label>
+                      <select required className={inputClass} value={editingProduct.categorie || ""} onChange={(e) => setEditingProduct({ ...editingProduct, categorie: e.target.value })}>
+                        <option value="" disabled>Choisir</option>
+                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Style</label>
+                      <select required className={inputClass} value={editingProduct.style || ""} onChange={(e) => setEditingProduct({ ...editingProduct, style: e.target.value })}>
+                        <option value="" disabled>Choisir</option>
+                        {styles.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    
+                    {/* ÉDITION DES COULEURS */}
+                    <div>
+                      <label className={labelClass}>Couleurs</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Ajouter une couleur..."
+                          className={`${inputClass} flex-1`}
+                          value={editCouleurInput}
+                          onChange={(e) => setEditCouleurInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddColor(e, true);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => handleAddColor(e, true)}
+                          className="px-4 py-2 bg-black text-white font-black uppercase text-sm border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          +
+                        </button>
+                      </div>
+                      
+                      {(editingProduct.couleurs && editingProduct.couleurs.length > 0) && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {editingProduct.couleurs.map((couleur, index) => (
+                            <span key={index} className="flex items-center gap-2 bg-white border-2 border-black px-3 py-1 text-xs font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                              {couleur}
+                              <button 
+                                type="button" 
+                                onClick={() => handleRemoveColor(couleur, true)}
+                                className="text-red-500 hover:text-black text-lg leading-none"
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Occasion</label>
+                      <select required className={inputClass} value={editingProduct.occasion || ""} onChange={(e) => setEditingProduct({ ...editingProduct, occasion: e.target.value })}>
+                        <option value="" disabled>Choisir</option>
+                        {occasions.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-6">
                     <div className="w-full sm:w-1/3">
                       <label className={labelClass}>Prix (TND)</label>
                       <input
@@ -359,9 +578,9 @@ function AddProduct() {
 
                   <div>
                     <label className={labelClass}>Tailles disponibles</label>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-4 flex-wrap mt-2">
                       {["XS", "S", "M", "L", "XL"].map((taille) => (
-                        <label key={taille} className="cursor-pointer flex items-center">
+                        <label key={taille} className="cursor-pointer flex items-center relative">
                           <input 
                             type="checkbox" 
                             value={taille} 
@@ -369,7 +588,7 @@ function AddProduct() {
                             checked={editingProduct.taillesDisponibles?.includes(taille) || false}
                             className="hidden peer"
                           />
-                          <span className="px-3 py-1.5 bg-[#fdfaf6] border border-[#ece5dd] rounded-md text-sm text-[#8c7e71] peer-checked:bg-[#cba88c] peer-checked:text-white peer-checked:border-[#cba88c] transition-all hover:bg-[#f4ece2]">
+                          <span className="w-12 h-12 flex items-center justify-center bg-white border-4 border-black text-black font-black uppercase tracking-widest peer-checked:bg-black peer-checked:text-white peer-checked:translate-x-[2px] peer-checked:translate-y-[2px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] peer-checked:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] transition-all">
                             {taille}
                           </span>
                         </label>
@@ -377,7 +596,7 @@ function AddProduct() {
                     </div>
                   </div>
 
-                  <button type="submit" className="w-full mt-6 py-3 bg-[#6b8e6b] text-white font-semibold rounded-md hover:bg-[#5a7a5a] transition-colors shadow-sm">
+                  <button type="submit" className="w-full mt-10 py-5 bg-black text-white font-black uppercase tracking-widest text-lg border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all hover:-translate-y-1 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                     Enregistrer les modifications
                   </button>
                 </form>

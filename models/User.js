@@ -16,7 +16,13 @@ const userSchema = new mongoose.Schema({
   
 
   nom_marque: { type: String }, 
-  logo: { type: String }, 
+  logo: { type: String },
+  preferences: {
+  style: { type: String, default: "casual" },
+  couleurs: { type: String, default: "" },
+  occasion: { type: String, default: "tous les jours" }
+}, 
+
   
   estBloque: { type: Boolean, default: false } 
 }, { timestamps: true });

@@ -10,7 +10,12 @@ function Profil() {
   const navigate = useNavigate();
 
   const [commandesRecues, setCommandesRecues] = useState([]); 
-  const [mesAchats, setMesAchats] = useState([]); 
+
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  // Liste des tailles standards gérées
+  const listeTailles = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
   useEffect(() => {
     if (!user) return; 
@@ -18,14 +23,11 @@ function Profil() {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem("token"); 
-        const config = { headers: { Authorization: token } };
+        const config = { headers: { Authorization: `Bearer ${token}` } };
 
         if (user.role === "styliste") {
           const res = await axios.get("http://localhost:5000/api/orders/stylist", config);
           setCommandesRecues(res.data.orders);
-        } else if (user.role === "client") {
-          const res = await axios.get("http://localhost:5000/api/orders/my-orders", config);
-          setMesAchats(res.data.orders);
         }
       } catch (error) {
         console.error("Erreur lors de la récupération des commandes :", error);
@@ -34,6 +36,22 @@ function Profil() {
 
     fetchOrders();
   }, [user]);
+
+  const handleAIRequest = async () => {
+    setLoadingAI(true);
+    setAiError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://localhost:5000/api/recommendations", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      navigate("/preference", { state: { aiProducts: res.data.products } });
+    } catch {
+      setAiError("Une erreur s'est produite avec l'IA. Vérifiez votre serveur.");
+    } finally {
+      setLoadingAI(false);
+    }
+  };
 
   const changerStatut = async (orderId, nouveauStatut) => {
     try {
@@ -71,191 +89,163 @@ function Profil() {
 
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fdfaf6] font-sans">
-        <h2 className="text-[#3b332b] font-light text-2xl mb-5">Accès restreint</h2>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#FAF9F7] font-sans p-6">
+        <h2 className="text-4xl font-black uppercase tracking-tighter mb-8 text-black">Accès restreint</h2>
         <button 
-          className="px-6 py-2.5 bg-[#cba88c] text-white rounded-md font-semibold hover:bg-[#b59276] transition"
+          className="px-8 py-4 bg-black text-white border-2 border-black font-black uppercase tracking-widest hover:bg-[#e6ff00] hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
           onClick={() => navigate("/login")}
         >
-          SE CONNECTER
+          Se connecter
         </button>
       </div>
     );
   }
 
-  // Helper pour les couleurs des badges de statut
   const getStatusClasses = (statut) => {
     switch(statut) {
-      case 'en_attente': return 'bg-[#fff3cd] text-[#856404]';
-      case 'confirmee': return 'bg-[#d4edda] text-[#155724]';
-      case 'declinee': return 'bg-[#f8d7da] text-[#721c24]';
-      default: return 'bg-gray-200 text-gray-800';
+      case 'en_attente': return 'bg-[#e6ff00] text-black border-2 border-black';
+      case 'confirmee': return 'bg-green-400 text-black border-2 border-black';
+      case 'declinee': return 'bg-red-400 text-black border-2 border-black';
+      default: return 'bg-white text-black border-2 border-black';
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] font-sans text-[#3b332b] py-16 px-5">
-      <div className="max-w-[900px] mx-auto">
+    <div className="min-h-screen bg-[#FAF9F7] font-sans text-black pt-32 pb-24 px-6 relative">
+      <div className="max-w-[1000px] mx-auto">
         
         {/* --- CARTE PROFIL PRINCIPALE --- */}
-        <div className="bg-white border border-[#ece5dd] rounded-xl p-8 flex flex-col gap-6 shadow-sm mb-8">
-          
-          <div className="flex items-center gap-5 border-b border-[#ece5dd] pb-6">
-            {user.role === "styliste" && user.logo ? (
-              <img src={user.logo} alt="Logo" className="w-[90px] h-[90px] rounded-full object-cover border-[3px] border-[#cba88c]" />
-            ) : (
-              <div className="w-[90px] h-[90px] rounded-full bg-[#f4ece2] border-[3px] border-[#cba88c] flex items-center justify-center text-2xl font-bold text-[#8c7e71] uppercase">
-                {user.name.charAt(0)}{user.lastname.charAt(0)}
+        <div className="bg-white border-4 border-black p-8 md:p-10 flex flex-col gap-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-16">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b-4 border-black w-full pb-8">
+            <div className="flex items-center gap-6 w-full">
+              {user.role === "styliste" && user.logo ? (
+                <img src={user.logo} alt="Logo" className="w-[100px] h-[100px] object-cover border-4 border-black grayscale-[20%]" />
+              ) : (
+                <div className="w-[100px] h-[100px] bg-[#e6ff00] border-4 border-black flex items-center justify-center text-4xl font-black text-black uppercase">
+                  {user.name.charAt(0)}{user.lastname.charAt(0)}
+                </div>
+              )}
+              
+              <div className="flex-1">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-4">
+                  <div>
+                    <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter m-0 mb-2">{user.name} {user.lastname}</h2>
+                    <span className="inline-block bg-black text-[#e6ff00] border-2 border-black px-4 py-1.5 text-xs font-black uppercase tracking-widest">
+                      {user.role === 'styliste' ? 'Créateur' : 'Client'}
+                    </span>
+                  </div>
+                  <button onClick={handleLogout} className="px-5 py-3 bg-white text-black border-2 border-black font-black uppercase text-xs tracking-widest hover:bg-red-500 hover:text-white hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+                    Déconnexion
+                  </button>
+                </div>
               </div>
-            )}
-            
-            <div>
-              <h2 className="text-[26px] font-semibold m-0 mb-1.5">{user.name} {user.lastname}</h2>
-              <span className="inline-block bg-[#f4ece2] text-[#b59276] px-3 py-1 rounded-full text-[13px] font-bold uppercase tracking-wide">
-                {user.role === 'styliste' ? 'Styliste Créateur' : 'Membre Privilège'}
-              </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-[#fdfaf6] p-4 rounded-lg border border-[#ece5dd]">
-              <label className="block text-xs text-[#8c7e71] uppercase mb-1">Email</label>
-              <span className="text-[15px] font-medium">{user.email}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="bg-[#FAF9F7] p-5 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <label className="block text-xs font-black text-black uppercase tracking-widest mb-2">Email</label>
+              <span className="text-lg font-serif italic text-gray-600 truncate block" title={user.email}>{user.email}</span>
             </div>
-            <div className="bg-[#fdfaf6] p-4 rounded-lg border border-[#ece5dd]">
-              <label className="block text-xs text-[#8c7e71] uppercase mb-1">Téléphone</label>
-              <span className="text-[15px] font-medium">{user.phone || "Non renseigné"}</span>
+            <div className="bg-[#FAF9F7] p-5 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <label className="block text-xs font-black text-black uppercase tracking-widest mb-2">Téléphone</label>
+              <span className="text-lg font-serif italic text-gray-600">{user.phone || "Non renseigné"}</span>
             </div>
-            <div className="bg-[#fdfaf6] p-4 rounded-lg border border-[#ece5dd]">
-              <label className="block text-xs text-[#8c7e71] uppercase mb-1">
+            <div className="bg-[#FAF9F7] p-5 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <label className="block text-xs font-black text-black uppercase tracking-widest mb-2">
                 {user.role === "styliste" ? "Adresse Atelier" : "Adresse de livraison"}
               </label>
-              <span className="text-[15px] font-medium">{user.adress || "Non renseigné"}</span>
+              <span className="text-lg font-serif italic text-gray-600">{user.adress || "Non renseigné"}</span>
             </div>
             
+            {/* Section Taille améliorée sous forme de sélecteur visuel brutaliste */}
             {user.role === "client" && (
-              <div className="bg-[#fdfaf6] p-4 rounded-lg border border-[#ece5dd]">
-                <label className="block text-xs text-[#8c7e71] uppercase mb-1">Taille</label>
-                <span className="text-[15px] font-medium">{user.taille || "Non renseigné"}</span>
+              <div className="bg-[#FAF9F7] p-5 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:col-span-2 md:col-span-3">
+                <label className="block text-xs font-black text-black uppercase tracking-widest mb-3">Taille Profil</label>
+                <div className="flex flex-wrap gap-2">
+                  {listeTailles.map((taille) => {
+                    const active = user.taille?.toUpperCase() === taille;
+                    return (
+                      <span 
+                        key={taille} 
+                        className={`px-4 py-2 text-sm font-black border-2 border-black transition-all ${
+                          active 
+                            ? "bg-black text-[#e6ff00] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -translate-y-0.5" 
+                            : "bg-white text-gray-400 border-gray-300 opacity-60"
+                        }`}
+                      >
+                        {taille}
+                      </span>
+                    );
+                  })}
+                </div>
+                {!user.taille && (
+                  <span className="text-xs font-serif italic text-gray-400 mt-2 block">Aucune taille sélectionnée</span>
+                )}
               </div>
             )}
             
             {user.role === "styliste" && (
-              <div className="bg-[#fdfaf6] p-4 rounded-lg border border-[#ece5dd]">
-                <label className="block text-xs text-[#8c7e71] uppercase mb-1">Nom de la marque</label>
-                <span className="text-[15px] font-medium">{user.nom_marque || "Non renseigné"}</span>
+              <div className="bg-[#FAF9F7] p-5 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <label className="block text-xs font-black text-black uppercase tracking-widest mb-2">Marque</label>
+                <span className="text-lg font-serif italic text-gray-600">{user.nom_marque || "Non renseigné"}</span>
               </div>
             )}
           </div>
 
-          {/* Boutons d'action du profil */}
-          <div className="flex gap-3 mt-2 flex-wrap">
-            
-            {user.role === "styliste" && (
+          {user.role === "styliste" && (
+            <div className="flex mt-4">
               <button 
-                className="px-5 py-2.5 rounded-md text-sm font-semibold transition-colors bg-[#cba88c] text-white border border-[#cba88c] hover:bg-[#b59276]"
+                className="px-8 py-4 bg-black text-white border-2 border-black font-black uppercase text-sm tracking-widest hover:bg-[#e6ff00] hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all"
                 onClick={() => navigate("/add-product")}
               >
                 + Ajouter une création
               </button>
-            )}
-           
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* --- SECTION DES COMMANDES (Styliste) --- */}
-        {user.role === "styliste" && (
-          <div>
-            <h3 className="text-[22px] font-semibold mb-5 border-l-4 border-[#cba88c] pl-3">Commandes reçues</h3>
-            {commandesRecues.length === 0 ? (
-              <p className="text-[#8c7e71]">Aucune commande à traiter pour le moment.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {commandesRecues.map((cmd) => (
-                  <div key={cmd._id} className="bg-white border border-[#ece5dd] rounded-lg p-5 shadow-sm flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-start mb-4">
-                        <h4 className="font-semibold text-base m-0 text-[#3b332b]">{cmd.produitId?.titre || "Produit inconnu"}</h4>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getStatusClasses(cmd.statut)}`}>
-                          {cmd.statut.replace("_", " ")}
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <p className="text-[14px] text-[#8c7e71] m-0"><strong className="text-[#3b332b]">Client :</strong> {cmd.clientId?.name || ""} {cmd.clientId?.lastname || ""}</p>
-                        <p className="text-[14px] text-[#8c7e71] m-0"><strong className="text-[#3b332b]">Email :</strong> {cmd.clientId?.email}</p>
-                        <p className="text-[14px] text-[#8c7e71] m-0"><strong className="text-[#3b332b]">Taille choisie :</strong> {cmd.tailleChoisie}</p>
-                      </div>
-                    </div>
+       
+                    
+            
+         
 
-                    <div className="flex gap-2 mt-5 flex-wrap">
-                      {cmd.statut === "en_attente" && (
-                        <>
-                          <button 
-                            className="px-3 py-1.5 text-xs font-semibold rounded bg-[#6b8e6b] text-white hover:bg-[#5a7a5a] transition"
-                            onClick={() => changerStatut(cmd._id, "confirmee")}
-                          >
-                            Confirmer
-                          </button>
-                          <button 
-                            className="px-3 py-1.5 text-xs font-semibold rounded bg-[#b86b6b] text-white hover:bg-[#a15d5d] transition"
-                            onClick={() => changerStatut(cmd._id, "declinee")}
-                          >
-                            Refuser
-                          </button>
-                        </>
-                      )}
-                      <button 
-                        className="px-3 py-1.5 text-xs font-semibold rounded bg-[#9ba3af] text-white hover:bg-[#868d98] transition"
-                        onClick={() => archiverCommande(cmd._id)}
-                      >
-                        Archiver
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* --- SECTION DES ACHATS (Client) --- */}
+        {/* --- SECTION DES PRÉFÉRENCES (Client) --- */}
         {user.role === "client" && (
           <div>
-            <h3 className="text-[22px] font-semibold mb-5 border-l-4 border-[#cba88c] pl-3">Mes Achats</h3>
-            {mesAchats.length === 0 ? (
-              <p className="text-[#8c7e71]">Vous n'avez pas encore passé de commande.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {mesAchats.map((cmd) => (
-                  <div key={cmd._id} className="bg-white border border-[#ece5dd] rounded-lg p-5 shadow-sm">
-                    <div className="flex justify-between items-start mb-4">
-                      <h4 className="font-semibold text-base m-0 text-[#3b332b]">{cmd.produitId?.titre || "Produit inconnu"}</h4>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getStatusClasses(cmd.statut)}`}>
-                        {cmd.statut.replace("_", " ")}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[14px] text-[#8c7e71] m-0"><strong className="text-[#3b332b]">Taille commandée :</strong> {cmd.tailleChoisie}</p>
-                    </div>
-                  </div>
-                ))}
+            <h3 className="text-3xl font-black uppercase tracking-widest mb-8 border-b-4 border-black pb-2 text-black">Mes Préférences</h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              <div className="bg-[#e6ff00] p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-transform duration-200">
+                <label className="block text-sm font-black text-black uppercase tracking-widest mb-3">Style</label>
+                <span className="text-xl font-serif italic text-black capitalize">{user.preferences?.style || "Non renseigné"}</span>
               </div>
-            )}
+              <div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-transform duration-200">
+                <label className="block text-sm font-black text-black uppercase tracking-widest mb-3">Couleurs</label>
+                <span className="text-xl font-serif italic text-gray-600">{user.preferences?.couleurs || "Non renseigné"}</span>
+              </div>
+              <div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-transform duration-200">
+                <label className="block text-sm font-black text-black uppercase tracking-widest mb-3">Occasion</label>
+                <span className="text-xl font-serif italic text-gray-600 capitalize">{user.preferences?.occasion || "Non renseigné"}</span>
+              </div>
+            </div>
 
-            {/* BOUTON RECOMMANDATION IA */}
-            <div className="mt-10 pt-6 border-t border-[#ece5dd] flex justify-center">
-              <button 
-                onClick={() => navigate("/Preference-form")} 
-                className="w-full md:w-auto px-8 py-3.5 bg-[#3b332b] text-white text-[15px] rounded-lg font-bold hover:bg-[#2a241e] transition-colors shadow-md flex items-center justify-center gap-2"
+            <div className="mt-16 pt-8 border-t-4 border-black">
+              {aiError && (
+                <div className="mb-4 p-4 bg-red-400 text-black font-black uppercase tracking-widest border-4 border-black text-sm text-center">
+                  {aiError}
+                </div>
+              )}
+              <button
+                onClick={handleAIRequest}
+                disabled={loadingAI}
+                className="w-full py-6 bg-[#e6ff00] text-black text-xl md:text-2xl font-black uppercase tracking-widest border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:bg-black hover:text-[#e6ff00] transition-all flex justify-center items-center gap-4 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                ✨ Trouver mon style avec l'IA
+                {loadingAI ? "Analyse en cours..." : "Analyser avec l'IA"}
               </button>
             </div>
-            
           </div>
         )}
-
       </div>
     </div>
   );

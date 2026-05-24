@@ -6,11 +6,7 @@ import { Link } from "react-router-dom";
 function MesCommandes() {
   const [groupedOrders, setGroupedOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // État pour gérer quels groupes (commandes) sont ouverts
   const [expandedGroups, setExpandedGroups] = useState({});
-  
-  // --- ÉTAT DU MODAL DE DÉTAILS ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -18,7 +14,6 @@ function MesCommandes() {
     setSelectedProduct(item);
     setIsModalOpen(true);
   };
-  // ------------------------------------------
 
   const user = useSelector((state) => state.user?.user);
 
@@ -27,13 +22,10 @@ function MesCommandes() {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get("http://localhost:5000/api/orders/my-orders", {
-          headers: { Authorization: token },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
-        const rawOrders = res.data.orders || [];
 
-        // --- NOUVELLE LOGIQUE DE REGROUPEMENT ---
-        // On regroupe par date/heure ET par styliste !
+        const rawOrders = res.data.orders || [];
         const groups = {};
         
         rawOrders.forEach(order => {
@@ -41,14 +33,12 @@ function MesCommandes() {
           const dateStr = dateObj.toLocaleDateString("fr-FR", { day: '2-digit', month: 'long', year: 'numeric' });
           const timeStr = `${dateObj.getHours()}h${String(dateObj.getMinutes()).padStart(2, '0')}`;
           
-          // Récupération des infos du styliste
           const stylisteInfo = order.stylisteId || order.produitId?.stylisteId || {};
           const stylisteId = stylisteInfo._id || stylisteInfo || "inconnu";
           const stylisteName = stylisteInfo.name 
             ? `${stylisteInfo.name} ${stylisteInfo.lastname || ''}`.trim() 
             : null;
 
-          // La clé contient maintenant l'ID du styliste pour bien les séparer
           const groupKey = `${dateStr}_${timeStr}_${stylisteId}`;
 
           if (!groups[groupKey]) {
@@ -68,7 +58,6 @@ function MesCommandes() {
           groups[groupKey].totalPrice += prixUnitaire * (order.quantite || 1);
         });
 
-        // On convertit l'objet en tableau et on trie du plus récent au plus ancien
         const sortedGroups = Object.values(groups).sort((a, b) => b.dateObj - a.dateObj);
         
         setGroupedOrders(sortedGroups);
@@ -84,7 +73,6 @@ function MesCommandes() {
     }
   }, [user]);
 
-  // Fonction pour basculer l'ouverture/fermeture d'une commande
   const toggleGroup = (groupId) => {
     setExpandedGroups(prev => ({
       ...prev,
@@ -92,20 +80,17 @@ function MesCommandes() {
     }));
   };
 
-  // --- FONCTION POUR ANNULER UNE COMMANDE ---
   const handleCancelOrder = async (items) => {
     if (window.confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) {
       try {
         const token = localStorage.getItem("token");
-        // On boucle sur tous les articles de ce groupe pour les annuler dans la base de données
         await Promise.all(items.map(item => 
           axios.put(`http://localhost:5000/api/orders/${item._id}/cancel`, {}, {
-            headers: { Authorization: token }
+            headers: { Authorization: `Bearer ${token}` }
           })
         ));
         
         alert("Commande annulée avec succès !");
-        // On recharge la page pour mettre à jour l'affichage
         window.location.reload(); 
         
       } catch (error) {
@@ -117,125 +102,123 @@ function MesCommandes() {
 
   if (user?.role !== "client") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fdfaf6] text-[#3b332b]">
-        <h2 className="text-2xl font-bold mb-2">Accès réservé aux clients.</h2>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF9F7] font-sans">
+        <h2 className="text-3xl font-black uppercase tracking-widest text-black">Accès réservé</h2>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fdfaf6] text-[#3b332b]">
-        <h2 className="text-xl font-semibold animate-pulse">Chargement de votre historique...</h2>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF9F7] font-sans">
+        <h2 className="text-3xl font-black uppercase tracking-widest text-black animate-pulse">Chargement...</h2>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] pt-28 pb-12 px-5 font-sans text-[#3b332b] relative">
-      <div className="max-w-3xl mx-auto">
-        <h2 className="text-center text-3xl font-semibold mb-2 text-[#3b332b]">Mes Commandes</h2>
-        <p className="text-center text-[#8c7e71] mb-10">
-          Retrouvez ici l'historique de vos achats. Cliquez sur une commande pour en voir les détails.
-        </p>
+    <div className="min-h-screen bg-[#FAF9F7] pt-32 pb-24 px-6 font-sans text-black relative">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-[#e6ff00] p-8 md:p-10 mb-10 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-center">
+          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter m-0 mb-4 text-black">Mes Commandes</h2>
+          <p className="font-serif italic text-xl text-gray-800 m-0">
+            Historique de vos achats. Cliquez pour explorer.
+          </p>
+        </div>
 
         {groupedOrders.length === 0 ? (
-          <div className="text-center py-16 bg-white border border-[#ece5dd] border-dashed rounded-xl shadow-sm flex flex-col items-center">
-            <h4 className="text-lg font-semibold mb-6 text-[#4a4036]">Vous n'avez pas encore passé de commande.</h4>
+          <div className="text-center p-12 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center">
+            <h4 className="text-2xl font-black uppercase mb-8 text-black tracking-widest">Aucune commande</h4>
             <Link 
               to="/catalogue" 
-              className="px-6 py-3 bg-[#3b332b] text-white text-sm font-semibold rounded-md hover:bg-[#2a241e] transition-colors shadow-sm"
+              className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-sm border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
             >
               Découvrir le catalogue
             </Link>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-8">
             {groupedOrders.map((group) => {
               const isExpanded = expandedGroups[group.id];
               
-              // Détermination des styles de statut
-              let statusClasses = "text-amber-700 bg-amber-100"; 
+              let statusClasses = "bg-yellow-300 text-black"; 
               let statusText = "En attente";
 
               if (group.statutGlobal === "confirmee" || group.statutGlobal === "En cours de livraison") {
-                statusClasses = "text-blue-700 bg-blue-100";
+                statusClasses = "bg-blue-300 text-black";
                 statusText = "En préparation";
               }
               if (group.statutGlobal === "expediee" || group.statutGlobal === "Validée") {
-                statusClasses = "text-emerald-700 bg-emerald-100";
+                statusClasses = "bg-green-400 text-black";
                 statusText = "Expédiée";
               }
               if (group.statutGlobal === "declinee" || group.statutGlobal === "Refusée") {
-                statusClasses = "text-red-700 bg-red-100";
+                statusClasses = "bg-red-500 text-white";
                 statusText = "Refusée ✗";
               }
               if (group.statutGlobal === "Annulée" || group.statutGlobal === "annulee") {
-                statusClasses = "text-gray-700 bg-gray-100";
+                statusClasses = "bg-gray-400 text-black";
                 statusText = "Annulée";
               }
 
               return (
-                <div key={group.id} className="border border-[#ece5dd] rounded-xl bg-white shadow-sm overflow-hidden transition-all">
+                <div key={group.id} className="border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all">
                   
-                  {/* --- EN-TÊTE DE LA COMMANDE (Cliquable) --- */}
                   <div 
                     onClick={() => toggleGroup(group.id)}
-                    className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 bg-[#fcfcfc] hover:bg-[#fdfaf6] cursor-pointer transition-colors ${isExpanded ? 'border-b border-[#ece5dd]' : ''}`}
+                    className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 sm:p-8 cursor-pointer transition-colors hover:bg-[#e6ff00] ${isExpanded ? 'border-b-4 border-black bg-[#e6ff00]' : 'bg-white'}`}
                   >
-                    <div className="mb-3 sm:mb-0">
-                      <h4 className="text-lg font-semibold text-[#3b332b] mb-1">
-                        Commande du {group.displayDate}
+                    <div className="mb-4 sm:mb-0">
+                      <h4 className="text-xl md:text-2xl font-black uppercase tracking-widest text-black mb-2">
+                        {group.displayDate}
                       </h4>
                       {group.stylisteName && (
-                        <div className="text-sm font-semibold text-[#cba88c] mb-1">
-                          Chez : {group.stylisteName}
+                        <div className="text-lg font-serif italic text-gray-800 mb-2 font-bold">
+                          Chez {group.stylisteName}
                         </div>
                       )}
-                      <span className="text-sm text-[#8c7e71]">
-                        {group.items.length} article(s) • Total : <strong className="text-[#3b332b]">{group.totalPrice} TND</strong>
+                      <span className="text-sm font-bold uppercase tracking-widest text-gray-600 block mt-2">
+                        {group.items.length} Article(s) <span className="mx-2 text-black text-lg">•</span> Total: <strong className="text-black text-lg">{group.totalPrice} TND</strong>
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${statusClasses}`}>
+                    <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
+                      <span className={`px-4 py-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase tracking-widest whitespace-nowrap ${statusClasses}`}>
                         {statusText}
                       </span>
-                      <span className="text-[#8c7e71] text-lg w-5 text-center transition-transform">
-                        {isExpanded ? "▲" : "▼"}
+                      <span className="text-black text-2xl font-black transition-transform">
+                        {isExpanded ? "−" : "＋"}
                       </span>
                     </div>
                   </div>
 
-                  {/* --- DÉTAIL DES ARTICLES ET BOUTON ANNULER --- */}
                   {isExpanded && (
-                    <div className="p-5 bg-white">
+                    <div className="p-6 sm:p-8 bg-white">
                       {group.items.map((item) => (
-                        <div key={item._id} className="flex justify-between items-center py-4 border-b border-[#ece5dd] last:border-0">
-                          <div className="flex items-center gap-4">
+                        <div key={item._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b-2 border-gray-300 last:border-0 gap-4">
+                          <div className="flex items-center gap-6">
                             {item.produitId?.image ? (
                               <img 
                                 src={item.produitId.image} 
                                 alt={item.produitId.titre || "Produit"} 
-                                className="w-16 h-16 object-cover rounded-md border border-[#ece5dd]"
+                                className="w-24 h-24 object-cover border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                               />
                             ) : (
-                              <div className="w-16 h-16 bg-[#f4ece2] rounded-md border border-[#ece5dd] flex items-center justify-center text-xs text-[#8c7e71]">Img</div>
+                              <div className="w-24 h-24 bg-gray-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center font-black uppercase text-xs">N/A</div>
                             )}
                             
                             <div>
-                              <p className="font-semibold text-[#3b332b] mb-1">
+                              <p className="font-black text-xl uppercase tracking-wider mb-2 text-black">
                                 {item.produitId?.titre || "Produit supprimé"}
                               </p>
-                              <p className="text-sm text-[#8c7e71]">
-                                Taille : {item.tailleChoisie} <span className="mx-1">|</span> Qté : {item.quantite || 1}
+                              <p className="font-serif italic text-gray-600 font-bold">
+                                Taille : {item.tailleChoisie} <span className="mx-2 text-black not-italic font-black">|</span> Qté : {item.quantite || 1}
                               </p>
                             </div>
                           </div>
                           
-                          {/* --- PRIX ET BOUTON VOIR --- */}
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="font-bold text-[#3b332b]">
+                          <div className="flex flex-row sm:flex-col items-center sm:items-end w-full sm:w-auto justify-between sm:justify-center gap-4">
+                            <div className="font-black text-2xl bg-[#e6ff00] px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                               {(item.produitId?.prix || 0) * (item.quantite || 1)} TND
                             </div>
                             {item.produitId && (
@@ -244,22 +227,20 @@ function MesCommandes() {
                                   e.stopPropagation(); 
                                   openViewModal(item); 
                                 }}
-                                className="text-[#8c7e71] hover:text-[#cba88c] transition-colors text-xl p-1"
-                                title="Voir les détails du produit"
+                                className="px-4 py-2 bg-black text-white font-black uppercase text-xs border-2 border-black hover:bg-[#e6ff00] hover:text-black transition-all hover:-translate-y-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                               >
-                                👁️
+                                Détails
                               </button>
                             )}
                           </div>
                         </div>
                       ))}
 
-                      {/* Condition pour le bouton annuler */}
                       {group.statutGlobal && group.statutGlobal.toLowerCase().includes("attente") && (
-                        <div className="flex justify-end mt-4 pt-4 border-t border-dashed border-[#ece5dd]">
+                        <div className="flex justify-end mt-8 pt-8 border-t-4 border-black">
                           <button 
                             onClick={() => handleCancelOrder(group.items)}
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-md transition-colors shadow-sm"
+                            className="px-8 py-4 bg-red-500 text-white font-black uppercase tracking-widest text-sm border-4 border-black hover:bg-black transition-all hover:-translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                           >
                             Annuler cette commande
                           </button>
@@ -275,13 +256,12 @@ function MesCommandes() {
           </div>
         )}
 
-        {/* --- MODAL DE DÉTAILS DU PRODUIT --- */}
         {isModalOpen && selectedProduct && selectedProduct.produitId && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-            <div className="bg-white p-6 md:p-8 rounded-xl max-w-lg w-full relative shadow-2xl animate-fade-in-up">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-8 md:p-10 border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] max-w-xl w-full relative">
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-4 right-4 text-[#8c7e71] hover:text-[#3b332b] text-2xl leading-none"
+                className="absolute -top-4 -right-4 bg-[#e6ff00] border-4 border-black text-black w-12 h-12 flex items-center justify-center font-black text-xl hover:bg-black hover:text-white transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10"
               >
                 ✕
               </button>
@@ -290,35 +270,38 @@ function MesCommandes() {
                 <img 
                   src={selectedProduct.produitId.image} 
                   alt={selectedProduct.produitId.titre} 
-                  className="w-full h-64 object-cover rounded-lg mb-5 border border-[#ece5dd]" 
+                  className="w-full h-72 object-cover border-4 border-black mb-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" 
                 />
               ) : (
-                <div className="w-full h-64 bg-[#f4ece2] rounded-lg mb-5 flex items-center justify-center text-[#8c7e71] border border-[#ece5dd]">Image non disponible</div>
+                <div className="w-full h-72 bg-gray-200 border-4 border-black mb-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center font-black uppercase text-xl">Sans Image</div>
               )}
               
-              <h3 className="text-2xl font-bold text-[#3b332b] mb-1">{selectedProduct.produitId.titre}</h3>
-              <p className="text-xl font-bold text-[#cba88c] mb-4">{selectedProduct.produitId.prix} TND</p>
+              <h3 className="text-3xl font-black uppercase tracking-tighter mb-4">{selectedProduct.produitId.titre}</h3>
+              
+              <div className="inline-block bg-[#e6ff00] px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-8">
+                <p className="text-2xl font-black m-0">{selectedProduct.produitId.prix} TND</p>
+              </div>
               
               {selectedProduct.produitId.description && (
-                <p className="text-[#8c7e71] leading-relaxed mb-6 text-sm">
+                <p className="font-serif text-lg leading-relaxed mb-8 border-l-4 border-black pl-4">
                   {selectedProduct.produitId.description}
                 </p>
               )}
               
-              <div className="bg-[#fdfaf6] p-5 rounded-lg border border-[#ece5dd]">
-                <h4 className="font-semibold text-[#4a4036] mb-3">Détails de l'achat</h4>
-                <div className="space-y-2 text-sm text-[#4a4036]">
-                  <p className="flex justify-between border-b border-[#ece5dd] pb-1">
-                    <span className="text-[#8c7e71]">Taille commandée:</span> 
-                    <span className="font-semibold">{selectedProduct.tailleChoisie}</span>
+              <div className="bg-gray-100 p-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <h4 className="font-black uppercase tracking-widest text-lg mb-4 text-black border-b-4 border-black pb-2">Récapitulatif</h4>
+                <div className="space-y-3 text-sm font-bold uppercase tracking-wider text-black">
+                  <p className="flex justify-between border-b-2 border-gray-300 pb-2">
+                    <span className="text-gray-600">Taille</span> 
+                    <span className="font-black">{selectedProduct.tailleChoisie}</span>
                   </p>
-                  <p className="flex justify-between border-b border-[#ece5dd] pb-1">
-                    <span className="text-[#8c7e71]">Quantité:</span> 
-                    <span className="font-semibold">{selectedProduct.quantite || 1}</span>
+                  <p className="flex justify-between border-b-2 border-gray-300 pb-2">
+                    <span className="text-gray-600">Quantité</span> 
+                    <span className="font-black">{selectedProduct.quantite || 1}</span>
                   </p>
-                  <p className="flex justify-between pt-1">
-                    <span className="text-[#8c7e71]">Sous-total:</span> 
-                    <span className="font-bold text-[#3b332b]">{(selectedProduct.produitId.prix || 0) * (selectedProduct.quantite || 1)} TND</span>
+                  <p className="flex justify-between pt-2 text-lg">
+                    <span className="text-black">Sous-total</span> 
+                    <span className="font-black bg-[#e6ff00] px-2 border-2 border-black">{(selectedProduct.produitId.prix || 0) * (selectedProduct.quantite || 1)} TND</span>
                   </p>
                 </div>
               </div>

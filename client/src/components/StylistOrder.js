@@ -13,9 +13,9 @@ function StylistOrders() {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get("http://localhost:5000/api/orders/stylist", {
-          headers: { Authorization: token },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         const rawOrders = res.data.orders || [];
 
         const groups = {};
@@ -42,13 +42,9 @@ function StylistOrders() {
           groups[groupKey].quantiteTotale += (order.quantite || 1);
           groups[groupKey].orderIds.push(order._id);
           
-          // 👇 HNA BADDELNA BECH NFIQOU BEL MOCHKEL (DEBUG)
           let clientName = "Client Inconnu";
           if (order.clientId) {
-            console.log("Client récupéré depuis la base :", order.clientId);
-            
             const nom = order.clientId.name || "";
-            // N7OTTOU EZZOUZ: lastName wala lastname bech nethanew!
             const prenom = order.clientId.lastName || order.clientId.lastname || ""; 
             
             clientName = `${nom} ${prenom}`.trim(); 
@@ -79,8 +75,8 @@ function StylistOrders() {
       const updatePromises = group.orderIds.map(orderId => 
         axios.put(
           `http://localhost:5000/api/orders/${orderId}/status`,
-          { statut: newStatus }, 
-          { headers: { Authorization: token } }
+          { statut: newStatus },
+          { headers: { Authorization: `Bearer ${token}` } }
         )
       );
 
@@ -105,8 +101,8 @@ function StylistOrders() {
       const archivePromises = group.orderIds.map(orderId => 
         axios.put(
           `http://localhost:5000/api/orders/${orderId}/archive`,
-          {}, 
-          { headers: { Authorization: token } }
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
         )
       );
 
@@ -120,146 +116,151 @@ function StylistOrders() {
     }
   };
 
-  // Passage des couleurs inline aux classes Tailwind
   const getStatusDisplay = (status) => {
     switch(status) {
-      case "en_attente": return { text: "En attente", classes: "text-amber-700 bg-amber-100" };
-      case "confirmee": return { text: "En préparation", classes: "text-blue-700 bg-blue-100" }; 
-      case "expediee": return { text: "Expédiée", classes: "text-emerald-700 bg-emerald-100" }; 
-      case "declinee": return { text: "Refusée", classes: "text-red-700 bg-red-100" };
-      default: return { text: status.replace("_", " "), classes: "text-gray-700 bg-gray-100" };
+      case "en_attente": return { text: "En attente", classes: "bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" };
+      case "confirmee": return { text: "En préparation", classes: "bg-[#e6ff00] text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" }; 
+      case "expediee": return { text: "Expédiée", classes: "bg-black text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" }; 
+      case "declinee": return { text: "Refusée", classes: "bg-red-500 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" };
+      default: return { text: status.replace("_", " "), classes: "bg-gray-200 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" };
     }
   };
 
   if (user?.role !== "styliste") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fdfaf6] text-[#3b332b]">
-        <h2 className="text-2xl font-bold mb-2">Accès refusé.</h2>
-        <p className="text-[#8c7e71]">Espace réservé aux créateurs.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF9F7] text-black px-6">
+        <div className="bg-[#e6ff00] border-4 border-black p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] text-center">
+          <h2 className="text-4xl font-black uppercase tracking-tighter mb-4 text-black">Accès refusé</h2>
+          <p className="font-bold text-lg uppercase tracking-widest">Espace réservé aux créateurs.</p>
+        </div>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fdfaf6] text-[#3b332b]">
-        <h2 className="text-xl font-semibold animate-pulse">Chargement de vos ventes...</h2>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF9F7] text-black">
+        <div className="bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+          <h2 className="text-2xl font-black uppercase tracking-widest">Chargement de vos ventes...</h2>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] pt-28 pb-12 px-5 font-sans text-[#3b332b]">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-center text-3xl font-semibold mb-2 text-[#3b332b]">Mes Ventes</h2>
-        <p className="text-center text-[#8c7e71] mb-10">
+    <div className="min-h-screen bg-[#FAF9F7] pt-32 pb-24 px-4 sm:px-8 lg:px-16 font-sans text-black relative">
+      <div className="w-full max-w-[98vw] mx-auto">
+        <h2 className="text-center text-5xl md:text-6xl font-black uppercase tracking-tighter mb-4 text-black">Mes Ventes</h2>
+        <p className="text-center font-bold text-gray-600 mb-16 uppercase tracking-widest text-sm md:text-base">
           Gérez vos productions par articles et par tailles.
         </p>
 
         {groupedOrders.length === 0 ? (
-          <div className="text-center py-12 bg-white border border-[#ece5dd] border-dashed rounded-xl shadow-sm">
-            <h4 className="text-lg font-semibold mb-2 text-[#4a4036]">Vous n'avez pas encore de commandes.</h4>
-            <p className="text-[#8c7e71]">Continuez à ajouter des créations pour attirer des clients !</p>
+          <div className="text-center p-16 bg-white border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] w-full mx-auto">
+            <h4 className="text-3xl md:text-4xl font-black uppercase tracking-tight mb-4 text-black">Vous n'avez pas encore de commandes.</h4>
+            <p className="font-serif italic text-gray-600 font-bold text-xl md:text-2xl">Continuez à ajouter des créations pour attirer des clients !</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-[#ece5dd] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#f4ece2] text-[#4a4036] border-b-2 border-[#ece5dd]">
-                    <th className="p-4 font-semibold whitespace-nowrap">Création</th>
-                    <th className="p-4 font-semibold whitespace-nowrap">Taille</th>
-                    <th className="p-4 font-semibold whitespace-nowrap text-center">Qté Totale</th>
-                    <th className="p-4 font-semibold whitespace-nowrap">Clients</th>
-                    <th className="p-4 font-semibold whitespace-nowrap">Statut du lot</th>
-                    <th className="p-4 font-semibold whitespace-nowrap text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#ece5dd]">
-                  {groupedOrders.map((group) => {
-                    const statusStyle = getStatusDisplay(group.statusGroup);
-                    
-                    return (
-                      <tr key={group.id} className="hover:bg-[#fdfaf6] transition-colors">
-                        <td className="p-4 flex items-center gap-4 min-w-[200px]">
-                          {group.produit.image ? (
-                            <img 
-                              src={group.produit.image} 
-                              alt={group.produit.titre} 
-                              className="w-12 h-12 object-cover rounded-md border border-[#ece5dd]"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 bg-[#f4ece2] rounded-md border border-[#ece5dd] flex items-center justify-center text-xs text-[#8c7e71]">Img</div>
+          <div className="bg-white border-4 border-black shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] rounded-none w-full">
+            <table className="w-full text-left border-collapse table-auto">
+              <thead>
+                <tr className="bg-[#e6ff00] border-b-4 border-black">
+                  <th className="p-6 font-black uppercase tracking-widest text-sm md:text-base border-r-4 border-black w-1/4">Création</th>
+                  <th className="p-6 font-black uppercase tracking-widest text-sm md:text-base border-r-4 border-black text-center">Taille</th>
+                  <th className="p-6 font-black uppercase tracking-widest text-sm md:text-base border-r-4 border-black text-center">Qté Totale</th>
+                  <th className="p-6 font-black uppercase tracking-widest text-sm md:text-base border-r-4 border-black w-1/4">Clients</th>
+                  <th className="p-6 font-black uppercase tracking-widest text-sm md:text-base border-r-4 border-black">Statut du lot</th>
+                  <th className="p-6 font-black uppercase tracking-widest text-sm md:text-base text-center w-1/6">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y-4 divide-black">
+                {groupedOrders.map((group) => {
+                  const statusStyle = getStatusDisplay(group.statusGroup);
+                  
+                  return (
+                    <tr key={group.id} className=" transition-colors">
+                      <td className="p-6 flex flex-col md:flex-row items-start md:items-center gap-6 border-r-4 border-black h-full min-w-0">
+                        {group.produit.image ? (
+                          <img 
+                            src={group.produit.image} 
+                            alt={group.produit.titre} 
+                            className="w-24 h-24 object-cover border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] grayscale hover:grayscale-0 transition-all rounded-none flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-24 h-24 bg-[#e6ff00] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-sm font-black uppercase rounded-none flex-shrink-0">Img</div>
+                        )}
+                        <span className="font-black text-xl md:text-2xl uppercase tracking-wider break-words">{group.produit.titre}</span>
+                      </td>
+                      
+                      <td className="p-6 text-center font-black text-3xl border-r-4 border-black">
+                        {group.taille}
+                      </td>
+                      
+                      <td className="p-6 text-center border-r-4 border-black">
+                        <span className="inline-block bg-black text-white px-5 py-3 text-2xl font-black shadow-[6px_6px_0px_0px_rgba(230,255,0,1)]">
+                          {group.quantiteTotale}
+                        </span>
+                      </td>
+                      
+                      <td className="p-6 text-base border-r-4 border-black font-bold uppercase tracking-wide">
+                        <div className="flex flex-wrap gap-3">
+                          {group.clients.map((c, i) => (
+                            <span key={i} className="bg-gray-100 px-3 py-2 border-2 border-black inline-block w-fit">
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      
+                      <td className="p-6 border-r-4 border-black text-center md:text-left">
+                        <span className={`px-5 py-3 text-sm font-black uppercase tracking-widest inline-block ${statusStyle.classes}`}>
+                          {statusStyle.text}
+                        </span>
+                      </td>
+                      
+                      <td className="p-6 align-middle">
+                        <div className="flex flex-col gap-4 w-full">
+                          {group.statusGroup === "en_attente" && (
+                            <div className="flex flex-col gap-3">
+                              <button 
+                                className="w-full px-5 py-4 bg-[#e6ff00] text-black border-4 border-black font-black uppercase tracking-widest text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-black hover:text-white hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:translate-x-1 active:shadow-none transition-all rounded-none"
+                                onClick={() => handleUpdateGroupStatus(group, "confirmee")}
+                              >
+                                Accepter
+                              </button>
+                              <button 
+                                className="w-full px-5 py-4 bg-red-500 text-white border-4 border-black font-black uppercase tracking-widest text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-black hover:text-white hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:translate-x-1 active:shadow-none transition-all rounded-none"
+                                onClick={() => handleUpdateGroupStatus(group, "declinee")}
+                              >
+                                Refuser
+                              </button>
+                            </div>
                           )}
-                          <span className="font-semibold text-[#3b332b]">{group.produit.titre}</span>
-                        </td>
-                        
-                        <td className="p-4 font-bold text-[#8c7e71]">
-                          {group.taille}
-                        </td>
-                        
-                        <td className="p-4 text-center">
-                          <span className="inline-block bg-[#3b332b] text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm">
-                            {group.quantiteTotale}
-                          </span>
-                        </td>
-                        
-                        <td className="p-4 text-sm text-[#8c7e71]">
-                          <div className="flex flex-col gap-1">
-                            {group.clients.map((c, i) => <span key={i} className="whitespace-nowrap">{c}</span>)}
-                          </div>
-                        </td>
-                        
-                        <td className="p-4">
-                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${statusStyle.classes}`}>
-                            {statusStyle.text}
-                          </span>
-                        </td>
-                        
-                        <td className="p-4 align-middle">
-                          <div className="flex flex-col gap-2 w-full min-w-[140px]">
-                            {group.statusGroup === "en_attente" && (
-                              <div className="flex flex-col sm:flex-row gap-2">
-                                <button 
-                                  className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-xs font-semibold transition-colors shadow-sm"
-                                  onClick={() => handleUpdateGroupStatus(group, "confirmee")}
-                                >
-                                  Accepter lot
-                                </button>
-                                <button 
-                                  className="flex-1 px-3 py-2 bg-red-400 hover:bg-red-500 text-white rounded-md text-xs font-semibold transition-colors shadow-sm"
-                                  onClick={() => handleUpdateGroupStatus(group, "declinee")}
-                                >
-                                  Refuser
-                                </button>
-                              </div>
-                            )}
 
-                            {group.statusGroup === "confirmee" && (
-                              <button 
-                                className="w-full px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md text-xs font-semibold transition-colors shadow-sm"
-                                onClick={() => handleUpdateGroupStatus(group, "expediee")}
-                              >
-                                Marquer lot Expédié
-                              </button>
-                            )}
+                          {group.statusGroup === "confirmee" && (
+                            <button 
+                              className="w-full px-5 py-4 bg-black text-white border-4 border-black font-black uppercase tracking-widest text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-[#e6ff00] hover:text-black hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:translate-x-1 active:shadow-none transition-all rounded-none"
+                              onClick={() => handleUpdateGroupStatus(group, "expediee")}
+                            >
+                              Marquer Expédié
+                            </button>
+                          )}
 
-                            {(group.statusGroup === "expediee" || group.statusGroup === "declinee" || group.statusGroup === "annulee") && (
-                              <button 
-                                className="w-full px-3 py-2 bg-[#8c7e71] hover:bg-[#7a6c60] text-white rounded-md text-xs font-semibold transition-colors shadow-sm"
-                                onClick={() => handleArchiveGroup(group)}
-                              >
-                                Archiver
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          {(group.statusGroup === "expediee" || group.statusGroup === "declinee" || group.statusGroup === "annulee") && (
+                            <button 
+                              className="w-full px-5 py-4 bg-white text-black border-4 border-black font-black uppercase tracking-widest text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-black hover:text-white hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:translate-x-1 active:shadow-none transition-all rounded-none"
+                              onClick={() => handleArchiveGroup(group)}
+                            >
+                              Archiver
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

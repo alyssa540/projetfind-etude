@@ -13,7 +13,8 @@ router.post("/add", isAuth(), async (req, res) => {
       return res.status(401).send({ msg: "Non autorisé. Espace réservé aux stylistes." });
     }
 
-    const { titre, description, prix, taillesDisponibles, image } = req.body;
+    // NOUVEAU: On récupère style, couleur, occasion et categorie du req.body
+    const { titre, description, prix, taillesDisponibles, image, style, couleur, occasion, categorie } = req.body;
 
     const newProduct = new Product({
       titre,
@@ -21,6 +22,10 @@ router.post("/add", isAuth(), async (req, res) => {
       prix,
       taillesDisponibles,
       image,
+      style,      // Ajouté
+      couleur,    // Ajouté
+      occasion,   // Ajouté
+      categorie,  // Ajouté
       stylisteId: req.user._id, // L'ID vient du token décodé par isAuth
     });
 
@@ -37,7 +42,6 @@ router.post("/add", isAuth(), async (req, res) => {
 // @access  Public (pas besoin de isAuth ici)
 router.get("/all", async (req, res) => {
   try {
-    // 👇 CORRECTION: Zedt { isArchived: { $ne: true } } bech l'produits l'm'archivin ma yodh'hrouch w l'9dom yodh'hrou
     const products = await Product.find({ isArchived: { $ne: true } }).populate("stylisteId", "name lastname");
     res.status(200).send({ products, msg: "Catalogue récupéré avec succès" });
   } catch (error) {
@@ -47,19 +51,17 @@ router.get("/all", async (req, res) => {
 });
 
 // ==========================================
-// 👇 NOUVELLE ROUTE : RÉCUPÉRER LES CRÉATIONS ARCHIVÉES 
+// NOUVELLE ROUTE : RÉCUPÉRER LES CRÉATIONS ARCHIVÉES 
 // ==========================================
 // @route   GET api/products/stylist/archives
 // @desc    Récupérer les créations archivées du styliste connecté
 // @access  Private
 router.get("/stylist/archives", isAuth(), async (req, res) => {
   try {
-    // Vérification elli houwa styliste
     if (req.user.role !== "styliste") {
       return res.status(401).send({ msg: "Non autorisé" });
     }
     
-    // 👇 CORRECTION ICI : isArchived: true
     const creationsArchivees = await Product.find({ 
       stylisteId: req.user._id, 
       isArchived: true 
@@ -83,7 +85,6 @@ router.delete("/:id", isAuth(), async (req, res) => {
       return res.status(404).send({ msg: "Produit introuvable" });
     }
 
-    // Vérifier que le styliste qui supprime est bien le créateur du produit
     if (product.stylisteId.toString() !== req.user._id.toString()) {
       return res.status(401).send({ msg: "Non autorisé à supprimer ce produit" });
     }
@@ -97,16 +98,15 @@ router.delete("/:id", isAuth(), async (req, res) => {
 });
 
 // PUT : Modifier un produit (par son ID)
-router.put("/:id",isAuth(), async (req, res) => {
+router.put("/:id", isAuth(), async (req, res) => {
   try {
-    // On récupère l'ID du produit depuis l'URL (req.params.id)
     const productId = req.params.id;
     
-    // On cherche le produit et on le met à jour avec les nouvelles infos du Body
+    // Le req.body contient désormais aussi les nouveaux champs si on modifie
     const updatedProduct = await Product.findByIdAndUpdate(
       productId, 
-      { $set: req.body }, // On modifie seulement ce qu'on envoie
-      { new: true }       // "new: true" permet de renvoyer le produit modifié, pas l'ancien
+      { $set: req.body }, 
+      { new: true }      
     );
 
     if (!updatedProduct) {
@@ -127,7 +127,6 @@ router.put("/:id/archive", isAuth(), async (req, res) => {
       return res.status(401).send({ msg: "Non autorisé" });
     }
     
-    // 👇 CORRECTION ICI : isArchived: true
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id, 
       { $set: { isArchived: true } }, 
@@ -139,6 +138,7 @@ router.put("/:id/archive", isAuth(), async (req, res) => {
     res.status(500).send({ msg: "Erreur lors de l'archivage du produit" });
   }
 });
+
 // @route   PUT api/products/:id/unarchive
 // @desc    Désarchiver un produit (le remettre dans le catalogue)
 router.put("/:id/unarchive", isAuth(), async (req, res) => {
@@ -147,7 +147,6 @@ router.put("/:id/unarchive", isAuth(), async (req, res) => {
       return res.status(401).send({ msg: "Non autorisé" });
     }
     
-    // 👇 Nraj3ou isArchived false
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id, 
       { $set: { isArchived: false } }, 

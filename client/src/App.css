@@ -1,3 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+/* --- NAVBAR MOBILE : menu slide-down --- */
+.nav-mobile-enter {
+  will-change: transform, opacity;
+  animation: navMenuDown 0.22s ease-out;
+}
+
+@keyframes navMenuDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- FILTRE MOBILE : drawer slide-up --- */
+.filter-drawer {
+  will-change: transform;
+  animation: filterSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes filterSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* --- FILTRE DESKTOP : panel fade + slide-down --- */
+.filter-panel-enter {
+  will-change: transform, opacity;
+  animation: filterPanelDown 0.22s ease-out;
+}
+
+@keyframes filterPanelDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* --- CARROUSEL BANNER --- */
 .carousel-banner {
   height: 60vh; /* Moins haut qu'avant pour voir la suite de la page */

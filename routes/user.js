@@ -31,8 +31,8 @@ const upload = multer({ storage: storage });
 // 🚨 IMPORTANT : 'upload.single("logo")' yelzem tji 9bal registerRules bech yefhem l'body
 router.post("/register", upload.single("logo"), registerRules(), validation, async (req, res) => {
   // Zedna nom_marque w logo
-  const { name, lastname, email, password, role, taille, adress, phone, nom_marque } = req.body;
-  
+  const { name, lastname, email, password, role, taille, adress, phone, nom_marque, style, couleurs, occasion } = req.body;
+
   try {
     // check if the email exist
     const searchedUser = await User.findOne({ email });
@@ -46,8 +46,13 @@ router.post("/register", upload.single("logo"), registerRules(), validation, asy
       logoUrl = `http://localhost:5000/uploads/${req.file.filename}`; // Baddel l'port ken backend mte3ek mouch 5000
     }
 
-    const newUser = new User({ 
-      name, lastname, email, password, role, taille, adress, phone, nom_marque, logo: logoUrl 
+    const newUser = new User({
+      name, lastname, email, password, role, taille, adress, phone, nom_marque, logo: logoUrl,
+      preferences: {
+        style: style || 'casual',
+        couleurs: couleurs || '',
+        occasion: occasion || 'tous les jours'
+      }
     });
 
     // hash password
@@ -68,7 +73,7 @@ router.post("/register", upload.single("logo"), registerRules(), validation, asy
       expiresIn: 3600,
     });
 
-    res.status(200).send({ newUserToken, msg: "user is saved", token: `bearer ${token}` });
+    res.status(200).send({ newUserToken, msg: "user is saved", token });
   } catch (error) {
     res.status(500).send(error);
     console.log(error);
@@ -95,7 +100,7 @@ router.post("/login", loginRules(), validation, async (req, res) => {
       expiresIn: 3600,
     });
     
-    res.status(200).send({ user: searchedUser, msg: "success", token: `bearer ${token}` });
+    res.status(200).send({ user: searchedUser, msg: "success", token });
   } catch (error) {
     res.status(500).send({ msg: "Can not get the user" });
   }
@@ -119,18 +124,29 @@ router.get('/all', async (req, res) => {
 // UPDATE PROFIL (Connecté)
 // ==========================================
 // Zedtlek upload.single("logo") houni zeda, bech ken l'styliste yheb ybaddel l'logo mte3ou
+// ==========================================
+// UPDATE PROFIL (Connecté)
+// ==========================================
 router.put("/update-profile", isAuth(), upload.single("logo"), async (req, res) => {
   try {
-    const { name, lastname, taille, adress, phone, nom_marque } = req.body;
+    const { name, lastname, taille, adress, phone, nom_marque, style, couleurs, occasion } = req.body;
 
+    // 👇 On initialise les champs communs ici
     let updateFields = { name, lastname };
+    
+    // 👇 On ajoute le téléphone pour tout le monde (s'il est envoyé)
+    if (phone) updateFields.phone = phone;
 
+    // --- Champs spécifiques Client ---
     if (req.user.role === "client") {
       if (taille) updateFields.taille = taille;
-      if (adress) updateFields.adress = adress;
-      if (phone) updateFields.phone = phone;
+      if (adress) updateFields.adress = adress; // L'adresse peut être commune aussi, mais on la laisse là où tu l'as mise
+      if (style !== undefined) updateFields['preferences.style'] = style;
+      if (couleurs !== undefined) updateFields['preferences.couleurs'] = couleurs;
+      if (occasion !== undefined) updateFields['preferences.occasion'] = occasion;
     }
 
+    // --- Champs spécifiques Styliste ---
     if (req.user.role === "styliste") {
       if (adress) updateFields.adress = adress;
       if (nom_marque) updateFields.nom_marque = nom_marque;
@@ -149,31 +165,6 @@ router.put("/update-profile", isAuth(), upload.single("logo"), async (req, res) 
   } catch (error) {
     console.log(error);
     res.status(500).send({ msg: "Erreur serveur lors de la mise à jour" });
-  }
-});
-
-// PUT : Modifier le profil d'un utilisateur (par son ID)
-router.put("/:id", async (req, res) => {
-  try {
-    const userId = req.params.id;
-
-    if (req.body.password) {
-      delete req.body.password; 
-    }
-
-    const updatedUser = await User.findByIdAndUpdate(
-      userId, 
-      { $set: req.body },
-      { new: true }      
-    ).select("-password"); 
-
-    if (!updatedUser) {
-      return res.status(404).send({ msg: "Utilisateur introuvable" });
-    }
-
-    res.status(200).send({ msg: "Profil mis à jour avec succès !", user: updatedUser });
-  } catch (error) {
-    res.status(500).send({ msg: "Erreur lors de la modification du profil", error });
   }
 });
 

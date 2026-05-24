@@ -3,6 +3,10 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const STYLES = ["casual", "chic", "streetwear", "élégant", "sport"];
+const OCCASIONS = ["tous les jours", "soirée", "travail", "sortie"];
+const TAILLES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+
 function EditProfil() {
   const user = useSelector((state) => state.user?.user);
   const navigate = useNavigate();
@@ -10,17 +14,22 @@ function EditProfil() {
   // --- Champs Communs ---
   const [name, setName] = useState(user?.name || "");
   const [lastname, setLastname] = useState(user?.lastname || "");
+  const [phone, setPhone] = useState(user?.phone || ""); // Déplacé dans les champs communs
   
-  // --- Champs Spécifiques Client ---
-  const [taille, setTaille] = useState(user?.taille || user?.mensurations?.taille || "");
-  const [phone, setPhone] = useState(user?.phone || "");
+  // --- Champs Spécifiques Client (avec valeur par défaut "M" si vide) ---
+  const [taille, setTaille] = useState(user?.taille || user?.mensurations?.taille || "M");
 
   // --- Champs Spécifiques Styliste ---
   const [nom_marque, setNomMarque] = useState(user?.nom_marque || "");
   const [logo, setLogo] = useState(null);
 
-  // --- Champ partagé ---
+  // --- Champ partagé (Adresse) ---
   const [adress, setAdress] = useState(user?.adress || "");
+
+  // --- Préférences Style (clients uniquement) ---
+  const [prefStyle, setPrefStyle] = useState(user?.preferences?.style || "casual");
+  const [prefCouleurs, setPrefCouleurs] = useState(user?.preferences?.couleurs || "");
+  const [prefOccasion, setPrefOccasion] = useState(user?.preferences?.occasion || "tous les jours");
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -28,13 +37,17 @@ function EditProfil() {
       const token = localStorage.getItem("token");
       
       const formData = new FormData();
+      // Champs communs à tous les utilisateurs
       formData.append("name", name);
       formData.append("lastname", lastname);
+      formData.append("phone", phone); 
       
       if (user.role === "client") {
         formData.append("taille", taille);
         formData.append("adress", adress);
-        formData.append("phone", phone);
+        formData.append("style", prefStyle);
+        formData.append("couleurs", prefCouleurs);
+        formData.append("occasion", prefOccasion);
       } else if (user.role === "styliste") {
         formData.append("nom_marque", nom_marque);
         formData.append("adress", adress);
@@ -48,7 +61,7 @@ function EditProfil() {
         formData, 
         { 
           headers: { 
-            Authorization: token,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data" 
           } 
         }
@@ -64,26 +77,25 @@ function EditProfil() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fdfaf6]">
-        <h3 className="text-[#8c7e71] text-lg">Chargement de votre profil...</h3>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF9F7] p-6 font-sans">
+        <h3 className="text-2xl font-black uppercase tracking-widest text-black animate-pulse">Chargement...</h3>
       </div>
     );
   }
 
-  // Classes Tailwind réutilisables pour les inputs type "Material Design"
-  const inputClass = "w-full border-b border-[#ece5dd] bg-transparent py-2 text-[15px] text-[#4a4036] focus:outline-none focus:border-b-2 focus:border-[#cba88c] transition-colors placeholder-[#c4b9b0]";
-  const labelClass = "block text-base font-medium text-[#4a4036] mb-2";
-  const cardClass = "bg-white rounded-lg p-6 mb-4 border border-[#ece5dd] shadow-sm flex flex-col gap-6";
+  // Classes Tailwind réutilisables façon "Brutalist"
+  const inputClass = "w-full p-4 bg-white border-2 border-black text-black font-bold uppercase text-sm focus:outline-none focus:bg-[#e6ff00] transition-colors placeholder:text-gray-400 rounded-none";
+  const labelClass = "block text-xs font-black text-black uppercase tracking-widest mb-2";
+  const cardClass = "bg-white p-8 md:p-10 mb-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-6";
 
   return (
-    /* Conteneur principal qui prend au moins toute la hauteur de l'écran avec le fond beige clair */
-    <div className="min-h-screen bg-[#fdfaf6] py-10 px-4 font-sans text-[#4a4036]">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[#FAF9F7] pt-32 pb-24 px-6 font-sans text-black">
+      <div className="max-w-3xl mx-auto">
         
-        {/* En-tête façon Google Forms (avec la bordure colorée en haut) */}
-        <div className="bg-white rounded-lg p-6 mb-4 border border-[#ece5dd] shadow-sm border-t-[10px] border-t-[#cba88c]">
-          <h2 className="text-2xl font-normal mb-2 text-[#4a4036]">Mettre à jour mon profil</h2>
-          <p className="text-[#8c7e71] text-sm m-0">Modifiez vos informations personnelles ci-dessous.</p>
+        {/* En-tête Brutalist */}
+        <div className="bg-[#e6ff00] p-8 md:p-10 mb-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter m-0 mb-4 text-black">Mettre à jour</h2>
+          <p className="font-serif italic text-xl text-gray-700 m-0 border-l-4 border-black pl-4">Modifiez vos informations personnelles ci-dessous.</p>
         </div>
 
         <form onSubmit={handleUpdate}>
@@ -113,42 +125,112 @@ function EditProfil() {
                 required
               />
             </div>
+
+            <div>
+              <label className={labelClass}>Numéro de téléphone</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Ex: 21 345 678"
+                className={inputClass}
+              />
+            </div>
           </div>
 
           {/* --- Carte : Informations Client --- */}
           {user.role === "client" && (
             <div className={cardClass}>
+              {/* SÉLECTEUR DE TAILLE */}
               <div>
-                <label className={labelClass}>Taille</label>
-                <input 
-                  type="text" 
-                  value={taille} 
-                  onChange={(e) => setTaille(e.target.value)} 
-                  placeholder="Ex: M, L, 38, 40..."
-                  className={inputClass}
-                />
+                <label className={labelClass}>Sélectionnez votre taille</label>
+                <div className="flex flex-wrap gap-2">
+                  {TAILLES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTaille(t)}
+                      className={`px-4 py-2 border-2 border-black text-xs font-black uppercase tracking-wide transition-all ${
+                        taille === t
+                          ? "bg-[#e6ff00] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -translate-y-0.5"
+                          : "bg-white hover:bg-gray-100"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
                 <label className={labelClass}>Adresse complète</label>
-                <input 
-                  type="text" 
-                  value={adress} 
-                  onChange={(e) => setAdress(e.target.value)} 
+                <input
+                  type="text"
+                  value={adress}
+                  onChange={(e) => setAdress(e.target.value)}
                   placeholder="Numéro, rue, ville..."
                   className={inputClass}
                 />
               </div>
 
-              <div>
-                <label className={labelClass}>Numéro de téléphone</label>
-                <input 
-                  type="tel" 
-                  value={phone} 
-                  onChange={(e) => setPhone(e.target.value)} 
-                  placeholder="Ex: 21 345 678"
-                  className={inputClass}
-                />
+              {/* --- Préférences Style --- */}
+              <div className="pt-6 border-t-2 border-dashed border-black">
+                <h3 className="text-lg font-black uppercase tracking-widest text-black mb-6">
+                  Préférences Style
+                </h3>
+
+                <div className="flex flex-col gap-6">
+                  <div>
+                    <label className={labelClass}>Style vestimentaire</label>
+                    <div className="flex flex-wrap gap-2">
+                      {STYLES.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setPrefStyle(s)}
+                          className={`px-4 py-2 border-2 border-black text-xs font-black uppercase tracking-wide transition-all ${
+                            prefStyle === s
+                              ? "bg-[#e6ff00] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -translate-y-0.5"
+                              : "bg-white hover:bg-gray-100"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Couleurs préférées</label>
+                    <input
+                      type="text"
+                      value={prefCouleurs}
+                      onChange={(e) => setPrefCouleurs(e.target.value)}
+                      placeholder="ex: noir, blanc, bleu..."
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Occasion principale</label>
+                    <div className="flex flex-wrap gap-2">
+                      {OCCASIONS.map((o) => (
+                        <button
+                          key={o}
+                          type="button"
+                          onClick={() => setPrefOccasion(o)}
+                          className={`px-4 py-2 border-2 border-black text-xs font-black uppercase tracking-wide transition-all ${
+                            prefOccasion === o
+                              ? "bg-[#e6ff00] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -translate-y-0.5"
+                              : "bg-white hover:bg-gray-100"
+                          }`}
+                        >
+                          {o}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -184,14 +266,14 @@ function EditProfil() {
                   type="file" 
                   accept="image/*"
                   onChange={(e) => setLogo(e.target.files[0])} 
-                  className="block w-full text-sm text-[#8c7e71]
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded file:border file:border-[#ece5dd]
-                    file:text-sm file:font-medium
-                    file:bg-[#fdfaf6] file:text-[#4a4036]
-                    hover:file:bg-[#f0e9df] file:cursor-pointer transition-colors"
+                  className="block w-full text-sm text-black bg-white border-2 border-black p-2
+                    file:mr-4 file:py-3 file:px-6
+                    file:rounded-none file:border-2 file:border-black
+                    file:text-xs file:font-black file:uppercase file:tracking-widest
+                    file:bg-black file:text-white
+                    hover:file:bg-[#e6ff00] hover:file:text-black file:transition-colors file:cursor-pointer"
                 />
-                <span className="block mt-2 text-xs text-[#8c7e71]">
+                <span className="block mt-3 text-sm font-serif italic text-gray-500">
                   Laissez vide si vous ne voulez pas changer votre logo actuel.
                 </span>
               </div>
@@ -199,19 +281,19 @@ function EditProfil() {
           )}
 
           {/* --- Boutons d'action --- */}
-          <div className="flex justify-end gap-3 mt-6">
+          <div className="flex flex-col sm:flex-row justify-end gap-4 mt-8">
             <button 
               type="button" 
               onClick={() => navigate("/profil")}
-              className="px-4 py-2 text-sm font-semibold text-[#b59276] bg-transparent rounded hover:bg-[#f4ece2] transition-colors"
+              className="px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-sm border-4 border-black hover:bg-red-500 hover:text-white transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-center"
             >
               Annuler
             </button>
             <button 
               type="submit" 
-              className="px-6 py-2 text-sm font-semibold text-white bg-[#cba88c] rounded hover:bg-[#b59276] transition-colors shadow-sm"
+              className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-sm border-4 border-black hover:bg-[#e6ff00] hover:text-black transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-center"
             >
-              Enregistrer les modifications
+              Enregistrer
             </button>
           </div>
 

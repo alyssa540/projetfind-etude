@@ -1,42 +1,91 @@
 const express = require('express');
 const router = express.Router();
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const axios = require('axios');
+const Product = require('../models/Product');
+const User = require('../models/User');
+const isAuth = require('../middleware/passport');
 
-router.post('/', async (req, res) => {
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
+
+router.get('/', isAuth(), async (req, res) => {
     try {
-        // 1. Nthabtou l'clé tchargiet wala le 9bal ma nkalmou Google
-        const apiKey = process.env.GEMINI_API_KEY;
-        
-        if (!apiKey) {
-            console.error("❌ ERREUR: L'API Key mouch mawjouda! Thabet l'fichier .env");
-            return res.status(500).json({ error: "API Key manquante" });
-        } else {
-            console.log("✅ L'API Key te9rat mrigla! (Longueur: " + apiKey.length + " caractères)");
+        const dbUser = await User.findById(req.user._id).select('preferences');
+        const { style, couleurs, occasion } = dbUser?.preferences || {};
+
+        // 1. Fetch all active products from the catalogue
+        const products = await Product.find({ isArchived: { $ne: true } })
+            .select('_id titre description prix image style couleur occasion categorie');
+
+        if (products.length === 0) {
+            return res.status(200).json({ products: [] });
         }
 
-        // 2. Initialisation mtaa Gemini
-        const genAI = new GoogleGenerativeAI(apiKey);
-        // Njarbou b'gemini-pro bech netfedew l'erreur 404 mtaa l'flash ken l'package 9dim
-        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
+        // 2. Build a numbered list for Ollama 
+        const catalogue = products
+            .map((p, i) => {
+                const attrs = [
+                    `Catégorie: ${p.categorie || 'N/A'}`,
+                    `Style: ${p.style || 'N/A'}`,
+                    `Couleur: ${p.couleur || 'N/A'}`,
+                    `Occasion: ${p.occasion || 'N/A'}`
+                ].join(', ');
+                return `${i + 1}. [${attrs}] ${p.titre} - ${p.description}`;
+            })
+            .join('\n');
 
-        const { style, couleurs, occasion } = req.body;
+        // 👇 PROMPT AMÉLIORÉ : Strict, direct et formaté pour éviter le blabla de l'IA
+        const prompt = `[CONTEXTE]
+Tu es un moteur de recommandation e-commerce pour une application de mode. Ton rôle est d'analyser un catalogue et de renvoyer UNIQUEMENT les identifiants numériques des articles correspondants.
 
-        const prompt = `Je suis un client qui cherche des vêtements. Mon style préféré est "${style || 'chic'}", j'aime les couleurs "${couleurs || 'noir'}", et c'est pour une occasion : "${occasion || 'soirée'}". 
-        Donne-moi une liste de 3 suggestions de vêtements exacts. 
-        Réponds UNIQUEMENT avec les noms des vêtements séparés par des virgules. Ne dis rien d'autre.`;
+[CATALOGUE VÊTEMENTS]
+${catalogue}
 
-        // 3. Nkalmou Gemini
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+[PRÉFÉRENCES CLIENT]
+- Style : ${style || 'Peu importe'}
+- Couleurs : ${couleurs || 'Peu importe'}
+- Occasion : ${occasion || 'Peu importe'}
 
-        // 4. Formatage lel React
-        const recommendations = text.split(',').map(item => item.trim()).filter(item => item !== "");
-        res.status(200).json({ recommended_ids: recommendations });
+[CONSIGNES STRICTES DE RÉPONSE]
+1. Sélectionne entre 1 et 5 articles maximum qui correspondent le mieux aux préférences.
+2. Ne fais AUCUNE phrase. Ne donne AUCUNE explication. Ne dis pas "Bonjour" ni "Voici votre sélection".
+3. Ne mets pas de texte avant ou après les chiffres.
+4. Renvoie UNIQUEMENT les numéros des articles séparés par des virgules (ex: 1, 4, 7).`;
+
+        // 3. Ask Ollama
+        const ollamaRes = await axios.post(`${OLLAMA_URL}/api/generate`, {
+            model: OLLAMA_MODEL,
+            prompt,
+            stream: false,
+        });
+
+        // 4. Parse returned indices (Version ultra-sécurisée)
+        const raw = ollamaRes.data.response.trim();
+        
+        // Extraction des numéros présents dans la réponse
+        const matchedNumbers = raw.match(/\d+/g); 
+        
+        if (!matchedNumbers) {
+            console.log("Ollama n'a pas renvoyé de numéros valides:", raw);
+            return res.status(200).json({ products: [] });
+        }
+
+        // Nettoyage : On élimine les doublons potentiels générés par l'IA
+        const uniqueNumbers = [...new Set(matchedNumbers)];
+
+        // Conversion en index JavaScript (on fait -1) et filtrage de sécurité
+        const indices = uniqueNumbers
+            .map(n => parseInt(n, 10) - 1)
+            .filter(i => i >= 0 && i < products.length); // On s'assure que l'index existe dans le tableau
+
+        // Récupération des objets produits correspondants
+        const recommended = indices.map(i => products[i]).filter(Boolean);
+
+        res.status(200).json({ products: recommended });
 
     } catch (error) {
-        console.error("❌ Erreur Gemini détaillée:", error);
-        res.status(500).json({ error: "Erreur lors de la communication avec l'IA." });
+        console.error("❌ Erreur recommandation:", error.message);
+        res.status(500).json({ error: "Erreur lors de la recommandation." });
     }
 });
 

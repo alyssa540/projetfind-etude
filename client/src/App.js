@@ -19,6 +19,10 @@ import MesCommandes from "./components/MesCommandes";
 import Archives from "./components/Archives";
 import EditProfil from "./components/EditProfil"; 
 import PreferenceForm from "./components/PreferenceForm";
+import AdminDashboard from "./components/AdminDashboard";
+import AdminUsers from "./components/AdminUsers";
+import DesignerCreations from './components/DesignerCreations';
+
 
 function App() {
   const dispatch = useDispatch();
@@ -55,7 +59,13 @@ function App() {
           <Route path="/mes-commandes" element={<MesCommandes />} />
           <Route path="/edit-profile" element={<EditProfil />} />
           <Route path="/archives" element={<Archives />} /> 
-          <Route path="/preference-form" element={<PreferenceForm />} />
+          <Route path="/preference" element={<PreferenceForm />} />
+          <Route path="/product/:id" element={<Catalogue />} /> {/* Route pour afficher les détails d'un produit spécifique */}
+          <Route path="/order/:id" element={<MesCommandes />} /> {/* Route pour afficher les détails d'une commande spécifique */}
+          <Route path="/admin-dashboard" element={<AdminDashboard />} /> {/* Route pour l'espace admin, avec des sous-routes */}
+          <Route path="/admin/users" element={<AdminUsers />} /> {/* Route pour gérer les utilisateurs dans l'espace admin */}
+          <Route path="/admin/designers/:id/creations" element={<DesignerCreations />} />
+          
         </Routes>
       </div>
     </div>
