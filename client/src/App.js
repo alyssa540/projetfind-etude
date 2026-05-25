@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 // Make sure this path points to where your userSlice is located!
 import { userCurrent } from "./JS/userSlice/userSlice"; 
 import "./App.css"; 
+import axios from 'axios';
 
 // Importation des composants
 import Navbar from "./components/Navbarr";
@@ -22,6 +23,10 @@ import PreferenceForm from "./components/PreferenceForm";
 import AdminDashboard from "./components/AdminDashboard";
 import AdminUsers from "./components/AdminUsers";
 import DesignerCreations from './components/DesignerCreations';
+const apiUrl = process.env.NODE_ENV === 'production' 
+  ? 'https://projetfind-etude.vercel.app' // Lien l'backend elli rigelneh
+  : 'http://localhost:5000'; // Port l'backend fil PC mte3k (badel 5000 ken yelzem)
+  axios.defaults.baseURL = apiUrl;
 
 
 function App() {
