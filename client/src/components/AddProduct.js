@@ -37,7 +37,6 @@ function AddProduct() {
     }
   }, [user]);
 
-  // On remplace 'couleur' par 'couleurs: []'
   const [product, setProduct] = useState({
     titre: "",
     description: "",
@@ -45,7 +44,7 @@ function AddProduct() {
     image: "",
     taillesDisponibles: [],
     style: "",
-    couleurs: [], // <-- CHANGEMENT ICI
+    couleurs: [],
     occasion: "",
     categorie: "",
   });
@@ -90,7 +89,6 @@ function AddProduct() {
     }
   };
 
-  // --- FONCTIONS POUR GÉRER LES COULEURS ---
   const handleAddColor = (e, isEditing = false) => {
     e.preventDefault();
     if (isEditing) {
@@ -122,7 +120,6 @@ function AddProduct() {
       });
     }
   };
-  // ------------------------------------------
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -160,7 +157,6 @@ function AddProduct() {
   };
 
   const openEditModal = (creation) => {
-    // S'assurer que couleurs est un tableau même si l'ancien produit avait un string
     const formattedCreation = {
       ...creation,
       couleurs: Array.isArray(creation.couleurs) ? creation.couleurs : (creation.couleur ? [creation.couleur] : [])
@@ -266,7 +262,6 @@ function AddProduct() {
                 </select>
               </div>
 
-              {/* NOUVELLE GESTION DES COULEURS */}
               <div>
                 <label className={labelClass}>Couleurs</label>
                 <div className="flex gap-2">
@@ -292,7 +287,6 @@ function AddProduct() {
                   </button>
                 </div>
                 
-                {/* Affichage des tags de couleurs */}
                 {product.couleurs.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {product.couleurs.map((couleur, index) => (
@@ -333,14 +327,25 @@ function AddProduct() {
                 />
               </div>
 
+              {/* --- UPDATE: GESTION DU DOUBLE SUPPORTS IMAGE (FILE OU URL) --- */}
               <div className="w-full sm:w-2/3">
-                <label className={labelClass}>Importer une image</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className={fileInputClass}
-                  onChange={(e) => handleImageUpload(e, false)}
-                />
+                <label className={labelClass}>Image de la création</label>
+                <div className="space-y-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className={fileInputClass}
+                    onChange={(e) => handleImageUpload(e, false)}
+                  />
+                  <div className="text-center font-black text-xs uppercase tracking-widest text-gray-500 my-1">— OU RECOPIER L'URL —</div>
+                  <input
+                    type="text"
+                    placeholder="Coller l'URL de l'image ici..."
+                    className={inputClass}
+                    value={product.image.startsWith("data:image") ? "" : product.image}
+                    onChange={(e) => setProduct({ ...product, image: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
@@ -388,7 +393,7 @@ function AddProduct() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {mesCreations.map((creation) => (
-                <div key={creation._id} className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col  transition-all group">
+                <div key={creation._id} className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col transition-all group">
                   
                   <div className="relative h-72 border-b-4 border-black overflow-hidden bg-white">
                     <img 
@@ -410,7 +415,6 @@ function AddProduct() {
                       <div className="flex flex-wrap gap-2 mb-6">
                         {creation.categorie && <span className="text-xs font-bold uppercase tracking-wider bg-white border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{creation.categorie}</span>}
                         {creation.style && <span className="text-xs font-bold uppercase tracking-wider bg-white border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{creation.style}</span>}
-                        {/* Affichage d'un tag couleur s'il y en a */}
                         {(creation.couleurs && creation.couleurs.length > 0) && (
                            <span className="text-xs font-bold uppercase tracking-wider bg-black text-white border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">+{creation.couleurs.length} Coul.</span>
                         )}
@@ -501,7 +505,6 @@ function AddProduct() {
                       </select>
                     </div>
                     
-                    {/* ÉDITION DES COULEURS */}
                     <div>
                       <label className={labelClass}>Couleurs</label>
                       <div className="flex gap-2">
@@ -565,14 +568,26 @@ function AddProduct() {
                         onChange={(e) => setEditingProduct({ ...editingProduct, prix: e.target.value })}
                       />
                     </div>
+
+                    {/* --- UPDATE MODAL: DOUBLE CHANCE IMAGE AUSSI --- */}
                     <div className="w-full sm:w-2/3">
                       <label className={labelClass}>Changer l'image</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className={fileInputClass}
-                        onChange={(e) => handleImageUpload(e, true)}
-                      />
+                      <div className="space-y-4">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className={fileInputClass}
+                          onChange={(e) => handleImageUpload(e, true)}
+                        />
+                        <div className="text-center font-black text-xs uppercase tracking-widest text-gray-500 my-1">— OU PAR URL —</div>
+                        <input
+                          type="text"
+                          placeholder="Changer l'URL de l'image..."
+                          className={inputClass}
+                          value={editingProduct.image?.startsWith("data:image") ? "" : editingProduct.image}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </div>
 

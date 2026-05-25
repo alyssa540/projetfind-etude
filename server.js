@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 const passport = require("passport");
-const connectDB = require('./config/db_connect');
+const connectDB = require('./config/db_Connect');
 const app = express();
 const recommendationRoutes = require('./routes/recommendations');
 

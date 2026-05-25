@@ -216,7 +216,7 @@ function Profil() {
             <h3 className="text-3xl font-black uppercase tracking-widest mb-8 border-b-4 border-black pb-2 text-black">Mes Préférences</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-              <div className="bg-[#e6ff00] p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-transform duration-200">
+              <div className=" p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-transform duration-200">
                 <label className="block text-sm font-black text-black uppercase tracking-widest mb-3">Style</label>
                 <span className="text-xl font-serif italic text-black capitalize">{user.preferences?.style || "Non renseigné"}</span>
               </div>
@@ -241,7 +241,7 @@ function Profil() {
                 disabled={loadingAI}
                 className="w-full py-6 bg-[#e6ff00] text-black text-xl md:text-2xl font-black uppercase tracking-widest border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:bg-black hover:text-[#e6ff00] transition-all flex justify-center items-center gap-4 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {loadingAI ? "Analyse en cours..." : "Analyser avec l'IA"}
+                {loadingAI ? "Analyse en cours..." : "Find your best fit ?"}
               </button>
             </div>
           </div>
